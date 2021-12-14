@@ -1,0 +1,392 @@
+  description: |
+    Note\: yaml format prohibits using tabulations.
+
+    Cluster config for NGS analysis on haddock with slurm
+
+  author: "Arnaud Guille"
+
+  __default__:
+    host : "1"
+    core : "8"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "16G"
+
+  bwa_map_WGS:
+    host : "1"
+    core : "20"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "16G"
+
+  bwa_map:
+    host : "1"
+    core : "8"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "16G"
+
+  bwa_map2:
+    host : "1"
+    core : "20"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "32G"
+
+  split_bed :
+    host : "1"
+    core : "1"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  pindel:
+    host : "1"
+    core : "4"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stderr"
+    mem : "16G"
+
+  merge_pindel_files :
+    host : "1"
+    core : "1"
+    time : "1:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  qualimap :
+    host : "1"
+    core : "12"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "64G"
+
+  qualimapTumor :
+    host : "1"
+    core : "12"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "64G"
+
+  qualimapNormal :
+    host : "1"
+    core : "12"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "64G"
+
+  Mutect2 :
+    host : "1"
+    core : "8"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stderr"
+    mem : "16G"
+
+  VarDict :
+    host : "1"
+    core : "8"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stderr"
+    mem : "16G"
+
+  MergeMutect2VCF :
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  merge_pindel_vcf :
+    host : "1"
+    core : "2"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  Scalpel :
+    host : "1"
+    core : "12"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "16G"
+
+  ScalpelWES :
+    host : "1"
+    core : "8"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stderr"
+    mem : "16G"
+
+  mergeSomaticSNVResult :
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  mergeSomaticINDELResult :
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  mergeGermlineSNVResult :
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  mergeGermlineINDELResult :
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  getImportFiles:
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  mergeSNPResultFiles :
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  mergeIndelResultFiles :
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  mergeSVResultFiles :
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  prioritizeSNP :
+    host : "1"
+    core : "1"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  prioritizeINDEL :
+    host : "1"
+    core : "1"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  mergeQC :
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  mergeMSI :
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  kallisto :
+    host : "1"
+    core : "8"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "16G"
+
+  star :
+    host : "1"
+    core : "12"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "48G"
+
+  align_star_hg38 :
+    host : "1"
+    core : "20"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "48G"
+
+  align_star_virus :
+    host : "1"
+    core : "20"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "48G"
+
+  LocatIt :
+    host : "1"
+    core : "24"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "120G"
+
+  LocatIt2 :
+    host : "1"
+    core : "24"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "72G"
+
+  random_site_snv :
+    host : "1"
+    core : "1"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  random_site_indel :
+    host : "1"
+    core : "1"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  addsnv :
+    host : "1"
+    core : "20"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  addindel :
+    host : "1"
+    core : "20"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  pileupSNP :
+    host : "1"
+    core : "2"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  split_reads :
+    host : "1"
+    core : "2"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  estimate_damage :
+    host : "1"
+    core : "2"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  Coverage :
+    host : "1"
+    core : "1"
+    mem : "72G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  CoverageUniformity :
+    host : "1"
+    core : "1"
+    mem : "72G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  fusioncatcher :
+    host : "1"
+    core : "12"
+    mem : "48G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  sam2fastq :
+    host : "1"
+    core : "1"
+    mem : "4G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    
+  sam2fastq :
+    host : "1"
+    core : "1"
+    mem : "4G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    
+  mapsplice :
+    host : "1"
+    core : "20"
+    mem : "16G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    
+  rsem_expression :
+    host : "1"
+    core : "20"
+    mem : "16G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  optitype :
+    host : "1"
+    core : "16"
+    mem : "72G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  Bam2Wig :
+    host : "1"
+    core : "1"
+    mem : "8G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  ichorCNA :
+    host : "1"
+    core : "1"
+    mem : "8G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
