@@ -390,3 +390,19 @@
     stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
     stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
 
+  ScalpelSomatic :
+    host : "1"
+    core : "8"
+    mem : "20G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  ScalpelGerm :
+    host : "1"
+    core : "8"
+    mem : "20G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
