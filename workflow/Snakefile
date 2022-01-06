@@ -63,20 +63,6 @@ else :
     if not os.path.exists(config["annovar"]["hg19_db"]) :
         sys.exit("Annovar db not found")
 
-#Check gatk jar file
-if not "jar" in config["gatk"].keys() :
-    sys.exit("GATK jar file not found")
-else :
-    if not os.path.exists(config["gatk"]["jar"]) :
-        sys.exit("GATK jar file not found")
-
-#Check mutect jar file
-if not "jar" in config["mutect"].keys() :
-    sys.exit("Mutect jar file not found")
-else :
-    if not os.path.exists(config["gatk"]["jar"]) :
-        sys.exit("Mutect jar file not found")
-
 #Check conda env file
 if not os.path.exists(config["env1"]) :
     sys.exit("Missing env yaml file")
@@ -231,8 +217,12 @@ else :
         uniq=False
         tag_process_uniq = "."
     else:
-        uniq=True
-        tag_process_uniq = ".uniq."
+        if config["tools"]["uniq"] == "1" :
+            uniq=True
+            tag_process_uniq = ".uniq."
+        else :
+            uniq=False
+            tag_process_uniq = "."
 
 params_trim_crop="250"
 
@@ -248,9 +238,15 @@ else :
     if config["tools"]["dedup"] == "1" :
         dedup=True
         tag_process_dedup = ".dedup."
+        dedup_option_vardict = "--dedup"
+        dedup_option_pisces = "--filterduplicates true"
+        dedup_option_platypus = "--filterDuplicates=1"     
     else:
         dedup=False
         tag_process_dedup = "."
+        dedup_option_vardict = ""
+        dedup_option_pisces = ""
+        dedup_option_platypus = "--filterDuplicates=0" 
 
 if not "trimming" in config["tools"].keys() :
     sys.exit("Missing parameters trimming")
@@ -286,7 +282,7 @@ else :
 if not "application" in config["metadata"].keys() :
     sys.exit("Missing parameters application")
 else :
-    processing = tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"realigned.recall"
+    processing = tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall"
 
 #Check know indel file 1
 if not "known_indel1" in config["genome"].keys() :
@@ -351,17 +347,6 @@ if not os.path.exists(config["iAnnotSV"]["all_canonical_txt"]) :
 if not os.path.exists(config["iAnnotSV"]["region_to_exclude"]) :
     sys.exit("Missing iAnnot region_to_exclude")
 
-#SOMATIC Variant Caller used for the analysis
-vc_list_snv = []
-vc_list_indel = []
-
-if config["tools"]["snv_calling_somatic"] == "SomaticSeq" :
-    vc_list_snv = ["Mutect2","VarScan2","SomaticSniper","LoFreq","Muse","VarDict","JointSNVMix2","Strelka","SomaticSeq"]
-    vc_list_indel = ["Mutect2","VarScan2","Scalpel","LoFreq","VarDict","Strelka","SomaticSeq"]
-else :
-    vc_list_snv.append(config["tools"]["snv_calling_somatic"])
-    vc_list_indel.append(config["tools"]["indel_calling_somatic"])
-
 fastq_dir = config["dir"]["base"] + "/" + config["dir"]["fastq_dir"]
 
 #================================================================#
@@ -402,15 +387,16 @@ with open(config["metadata"]["analysis_sheet"], 'r') as f:
 
 output_analysis = "/analyse_"+config["metadata"]["date"]
 
-MAPPING_NORMAL=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"realigned.recall."+"bam",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_NORMAL),type_of_sample="NormalSample")
-MAPPING_TUMOR=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"realigned.recall."+"bam",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),type_of_sample="TumorSample")
-COV_NORMAL=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/report_{seq_name}/{seq_name}.cov.uniformity",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_NORMAL),type_of_sample="NormalSample")
-COV_TUMOR=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/report_{seq_name}/{seq_name}.cov.uniformity",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_TUMOR),type_of_sample="TumorSample")
-QC_TUMOR=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/report_{seq_name}/{seq_name}.bam.qc",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_TUMOR),type_of_sample="TumorSample")
-QC_NORMAL=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/report_{seq_name}/{seq_name}.bam.qc",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_NORMAL),type_of_sample="NormalSample")
+MAPPING_NORMAL=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_NORMAL),type_of_sample="NormalSample")
+MAPPING_TUMOR=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),type_of_sample="TumorSample")
+COV_NORMAL=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/QC/{seq_name}.cov.uniformity",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_NORMAL),type_of_sample="NormalSample")
+COV_TUMOR=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/QC/{seq_name}.cov.uniformity",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_TUMOR),type_of_sample="TumorSample")
+QC_TUMOR=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/QC/{seq_name}.bam.qc",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_TUMOR),type_of_sample="TumorSample")
+QC_NORMAL=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/QC/{seq_name}.bam.qc",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_NORMAL),type_of_sample="NormalSample")
 SOMATIC_VC_SV = expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Delly/{seq_name}_vs_{normal}.Delly.somatic.sv.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR)
 SOMATIC_ANNOT=expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{seq_name}_vs_{normal}.somatic.snv.result",zip,tumor=TUMOR, normal=NORMAL,seq_name=SAMPLES_TUMOR)
-GERMLINE_ANNOT=expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{seq_name}.germline.snv.result",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL)
+GERMLINE_SNP_ANNOT=expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{seq_name}.germline.snv.result",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL)
+GERMLINE_INDEL_ANNOT=expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{seq_name}.germline.indel.result",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL)
 MERGE_SNV_SOMATIC=config["dir"]["base"]+"/somatic.snv.filtered.txt"
 MERGE_INDEL_SOMATIC=config["dir"]["base"]+"/somatic.indel.filtered.txt"
 MERGE_SV_SOMATIC=config["dir"]["base"]+"/somatic.sv.filtered.txt",
@@ -423,9 +409,10 @@ IMPORT_INDEL_GERMLINE=config["dir"]["base"]+output_analysis+"/germline.indel.imp
 MSI_STATUT=expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{seq_name}_vs_{normal}.msi",zip,tumor=TUMOR, normal=NORMAL,seq_name=SAMPLES_TUMOR)
 MERGE_QC=config["dir"]["base"]+output_analysis+"/bam.stats"
 MERGE_MSI=config["dir"]["base"]+output_analysis+"/merge.msi"
-SNP_PILEUP=expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FACETS/{seq_name}_vs_{normal}_normal.FACETS.snp.matrix",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR)
 HLA_TYPE=expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Optitype/{seq_name}_result.tsv",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL)
-
+SEQUENZA=expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.gz_segments.txt",zip,tumor=TUMOR, normal=NORMAL,seq_name=SAMPLES_TUMOR)
+CROSS_CHECK_FINGERPRINTS=expand(config["dir"]["base"]+"/{tumor}_{normal}/{seq_name}.crosscheck_metrics",zip,tumor=TUMOR, normal=NORMAL,seq_name=SAMPLES_TUMOR)
+FUNCOTATOR=expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Funcotator/{seq_name}_vs_{normal}.variants.funcotated.maf",zip,tumor=TUMOR, normal=NORMAL,seq_name=SAMPLES_TUMOR)
 #================================================================#
 #                      Input Functions
 #================================================================#
@@ -559,17 +546,21 @@ else :
         input:
             MAPPING_TUMOR,
             MAPPING_NORMAL,
-            QC_NORMAL,
-            QC_TUMOR,
-            COV_NORMAL,
-            COV_TUMOR,
-            MSI_STATUT,
-            SOMATIC_ANNOT,
-            GERMLINE_ANNOT,
-            MERGE_SNV_SOMATIC,
-            MERGE_INDEL_SOMATIC,
-            MERGE_SNV_GERMLINE,
-            MERGE_INDEL_GERMLINE,
+            #QC_NORMAL,
+            #QC_TUMOR,
+            #COV_NORMAL,
+            #COV_TUMOR,
+            #MSI_STATUT,
+            #SOMATIC_ANNOT,
+            #GERMLINE_SNP_ANNOT,
+            #GERMLINE_INDEL_ANNOT,
+            #MERGE_SNV_SOMATIC,
+            #MERGE_INDEL_SOMATIC,
+            #MERGE_SNV_GERMLINE,
+            #MERGE_INDEL_GERMLINE,
+            SEQUENZA,
+            #CROSS_CHECK_FINGERPRINTS,
+            FUNCOTATOR,
             IMPORT_SNV_SOMATIC,
             IMPORT_INDEL_SOMATIC,
             IMPORT_SNV_GERMLINE,
@@ -782,8 +773,7 @@ rule picard_add_group :
         bam=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"bam",
         index=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"bam.bai",
     output:
-        bam=temp(config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam"),
-        index=temp(config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bai")
+        temp(config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam")
     container:
         "docker://ngsom/tumorseq"
     params:
@@ -793,7 +783,7 @@ rule picard_add_group :
         RGDT=config['metadata']['date'],
     shell :"""java -XX:ParallelGCThreads=2 -Xmx16G -jar /usr/share/java/picard.jar AddOrReplaceReadGroups \
         -I {input.bam} \
-        -O {output.bam} \
+        -O {output} \
         -RGID {wildcards.seq_name} \
         -RGLB {params.RGLB} \
         -RGPL {params.RGPL} \
@@ -803,40 +793,53 @@ rule picard_add_group :
         -RGDS description \
         -RGDT {params.RGDT} \
         -VALIDATION_STRINGENCY SILENT \
-        -CREATE_INDEX true"""
+        -CREATE_INDEX false"""
+
+#Index Bam files
+rule samtools_index_rg :
+    input:
+        config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam"
+    output:
+        temp(config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam.bai")
+    container:
+        "docker://ngsom/tumorseq"
+    shell:
+        "samtools index {input}"
 
 
 #Dedup Reads
 rule GATK_dedup_spark :
     input:
         bam=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam",
-        index=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bai",
+        index=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam.bai",
+        ref=config["genome"]["fasta_file"]
     output:
         bam=temp(config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+".dedup."+"bam"),
         index=temp(config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+".dedup."+"bam.bai")
     container:
-        "docker://ngsom/tumorseq"
+        "docker://broadinstitute/gatk:4.2.2.0"
     params:
         base_dir=output_dir
     shell:
         """
-        gatk MarkDuplicatesSpark \ 
+        gatk MarkDuplicatesSpark \
         --java-options -Xmx16G \
         --spark-master local[8] \
-        -R $genome \
+        -R {input.ref} \
         -I {input.bam} \
-        -O {output}
+        -O {output.bam}
         """
 
 rule GATK_recalibrate_spark :
     input:
-        bam=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+".dedup."+"bam",
-        index=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+".dedup."+"bam.bai"
+        bam=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"bam",
+        index=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"bam.bai",
         ref=config["genome"]["fasta_file"],
         known_indel1=config["genome"]["known_indel1"],
         known_indel2=config["genome"]["known_indel2"],
-        target=config["metadata"]["design"],
+        target=config["metadata"]["design"]
     output:
+        grp=temp(config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}.grp"),
         bam=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
         index=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai"
     container:
@@ -850,28 +853,28 @@ rule GATK_recalibrate_spark :
         -R {input.ref} \
         -I {input.bam} \
         --known-sites /shared/projects/pmngs/human_genome_hg19/annot/dbsnp_138.hg19.vcf.gz \
-        -O {params.base_dir}/{wildcards.seq_name}/{wildcards.seq_name}.grp 
+        -O {output.grp} 
         gatk ApplyBQSRSpark \
         --java-options -Xmx16G \
         --spark-master local[8] \
         -R {input.ref} \
         -I {input.bam} \
-        --bqsr-recal-file {params.base_dir}/{wildcards.seq_name}/{wildcards.seq_name}.grp \
+        --bqsr-recal-file {output.grp} \
         -O {output.bam}
         """
 
 #Collect Sequencing Artifacts
 rule picard_collect_seq_artifacts :
     input:
-        bam=output_dir+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
-        index=output_dir+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
+        bam=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
         ref=config["genome"]["fasta_file"]
     output:
-        output_dir+"/{tumor}_{normal}/{type_of_sample}/QC}/{seq_name}.pre_adapter_detail_metrics.txt",
-        output_dir+"/{tumor}_{normal}/{type_of_sample}/QC}/{seq_name}.pre_adapter_summary_metrics.txt",
-        output_dir+"/{tumor}_{normal}/{type_of_sample}/QC}/{seq_name}.bait_bias_detail_metrics.txt",
-        output_dir+"/{tumor}_{normal}/{type_of_sample}/QC}/{seq_name}.bait_bias_summary_metrics.txt",
-        output_dir+"/{tumor}_{normal}/{type_of_sample}/QC}/{seq_name}.error_summary_metrics.txt"
+        output_dir+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.pre_adapter_detail_metrics.txt",
+        output_dir+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.pre_adapter_summary_metrics.txt",
+        output_dir+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.bait_bias_detail_metrics.txt",
+        output_dir+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.bait_bias_summary_metrics.txt",
+        output_dir+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.error_summary_metrics.txt"
     container:
         "docker://ngsom/tumorseq"
     params:
@@ -887,8 +890,8 @@ rule picard_collect_seq_artifacts :
 
 rule PileupSummaries :
     input:
-        index=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"realigned.recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"realigned.recall."+"bam",
+        index=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
+        bam=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"]
     output:
@@ -927,6 +930,30 @@ rule CalculateContamination:
         -I {input.paired[0]} \
         --matched-normal {input.paired[1]} \
         -O {output}
+        """
+
+rule Cross_check_fingerprints:
+    input:
+        paired=get_paired_pileup,
+        ref=config["genome"]["fasta_file"],
+        target=config["metadata"]["design"],
+    output:
+        config["dir"]["base"]+"/{tumor}_{normal}/{seq_name}.crosscheck_metrics"
+    container:
+        "docker://ngsom/tumorseq"
+    params:
+        base_dir=output_dir,
+    shell:"""
+        java -jar /usr/share/java/picard.jar CrosscheckFingerprints \
+        --HAPLOTYPE_MAP /shared/projects/pmngs/human_genome_hg19/annot/hg19_chr.map \
+        -I {input.paired[1]} \
+        -I {input.paired[0]} \
+        --CROSSCHECK_BY FILE \
+        --LOD_THRESHOLD -5 \
+        --EXPECT_ALL_GROUPS_TO_MATCH true \
+        --ALLOW_DUPLICATE_READS true \
+        --OUTPUT {output} \
+        --VALIDATION_STRINGENCY SILENT
         """
 
 rule bam2fq1 :
@@ -1064,7 +1091,7 @@ rule GATK_haplotypecaller :
 
 rule GATK_left_align_hc :
     input:
-        vcf=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/HaplotypeCaller/{seq_name}.HaplotypeCaller.germline.vcf"
+        vcf=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/HaplotypeCaller/{seq_name}.HaplotypeCaller.germline.vcf",
         ref=config["genome"]["fasta_file"]
     output:
         config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/HaplotypeCaller/{seq_name}.HaplotypeCaller.germline.LeftAlign.vcf"
@@ -1169,7 +1196,7 @@ rule piscesGerm :
         dedup=dedup_option_pisces
     shell:"""
     dotnet /opt/Pisces/Pisces.dll -bam {input.bam} -g /shared/ifbstor1/projects/pmngs/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta {params.dedup} --gvcf false -i {input.target} -t 8 --minbq 20 --minmq 30 --mindp 10 --minvf 0.02 --callmnvs true --threadbychr true --outfolder {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/NormalSample/Pisces
-    mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/NormalSample/Pisces/{wildcards.seq_name}.sort.RG.recall.vcf {output}
+    mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/NormalSample/Pisces/{wildcards.seq_name}.sort.RG.*.vcf {output}
     """
 
 rule GATK_left_align_piscesGerm :
@@ -1196,7 +1223,7 @@ rule split_snp_indel_piscesGerm :
     input:
         vcf=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Pisces/{seq_name}.Pisces.germline.LeftAlign.vcf"
     output:
-        config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Pisces/{seq_name}.SNP.Pisces.germline.LeftAlign.vcf"
+        config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Pisces/{seq_name}.SNP.Pisces.germline.LeftAlign.vcf",
         config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Pisces/{seq_name}.INDEL.Pisces.germline.LeftAlign.vcf"
     container:
         "docker://ngsom/tumorseq"
@@ -1313,7 +1340,7 @@ rule StrelkaGerm :
     output:
         config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Strelka/{seq_name}.Strelka.germline.vcf",
     container:
-        "docker://ngsom/tumorseq"
+        "docker://ngsom/somatic"
     params:
         base_dir=output_dir
     shell:"""
@@ -1345,7 +1372,7 @@ rule GATK_left_align_strelka :
         vcf=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Strelka/{seq_name}.Strelka.germline.recode.vcf",
         ref=config["genome"]["fasta_file"]
     output:
-        config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Strelka{seq_name}.Strelka.germline.LeftAlign.vcf"
+        config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Strelka/{seq_name}.Strelka.germline.LeftAlign.vcf"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
     params:
@@ -1365,7 +1392,7 @@ rule split_snp_indel_StrelkaGerm :
     input:
         vcf=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Strelka/{seq_name}.Strelka.germline.LeftAlign.vcf"
     output:
-        config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Strelka/{seq_name}.SNP.Strelka.germline.LeftAlign.vcf"
+        config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Strelka/{seq_name}.SNP.Strelka.germline.LeftAlign.vcf",
         config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Strelka/{seq_name}.INDEL.Strelka.germline.LeftAlign.vcf"
     container:
         "docker://ngsom/tumorseq"
@@ -1387,17 +1414,17 @@ rule ScalpelGerm :
     output :
         config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Scalpel/{seq_name}.INDEL.Scalpel.germline.vcf"
     container:
-        "docker://ngsom/tumorseq"
+        "docker://lethalfang/scalpel:0.5.4"
     params:
         base_dir=output_dir
     shell:"""
-    scalpel-discovery --single --bam {input.bam} --bed {input.target} --ref {input.ref} --dir {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/NormalSample/Scalpel --numprocs 8 --intarget
-    scalpel-export --single --db {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/NormalSample/Scalpel/variants.db.dir --bed {input.target} --ref {input.ref} --min-alt-count 2 --min-vaf 0.02 --min-coverage 10 --intarget > {output}
+    /opt/scalpel-0.5.4/scalpel-discovery --single --bam {input.bam} --bed {input.target} --ref {input.ref} --dir {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/NormalSample/Scalpel --numprocs 8 --intarget
+    /opt/scalpel-0.5.4/scalpel-export --single --db {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/NormalSample/Scalpel/variants.db.dir --bed {input.target} --ref {input.ref} --min-alt-count 2 --min-vaf 0.02 --min-coverage 10 --intarget > {output}
     """
 
 rule GATK_left_align_scalpelGerm :
     input:
-        vcf=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Scalpel/{seq_name}.INDEL.Scalpel.germline.recode.vcf",
+        vcf=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Scalpel/{seq_name}.INDEL.Scalpel.germline.vcf",
         ref=config["genome"]["fasta_file"]
     output:
         config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Scalpel/{seq_name}.INDEL.Scalpel.germline.LeftAlign.vcf"
@@ -1430,18 +1457,18 @@ rule pindelGerm :
     input:
         config=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.pindel.config.txt",
         index=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam"
+        bam=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
         ref=config["genome"]["fasta_file"]
     output:
         temp(output_dir+"/{tumor}_{normal}/NormalSample/pindel/tmp/{seq_name}.{chr}.INDEL_SI"),
-        temp(output_dir+"/{tumor}_{normal}/NormalSample//pindel/tmp/{seq_name}.{chr}.INDEL_D"),
-        temp(output_dir+"/{tumor}_{normal}/NormalSample//pindel/tmp/{seq_name}.{chr}.INDEL_LI"),
-        temp(output_dir+"/{tumor}_{normal}/NormalSample//pindel/tmp/{seq_name}.{chr}.INDEL_INV"),
-        temp(output_dir+"/{tumor}_{normal}/NormalSample//pindel/tmp/{seq_name}.{chr}.INDEL_TD"),
-        temp(output_dir+"/{tumor}_{normal}/NormalSample//pindel/tmp/{seq_name}.{chr}.INDEL_BP"),
-        temp(output_dir+"/{tumor}_{normal}/NormalSample//pindel/tmp/{seq_name}.{chr}.INDEL_CloseEndMapped"),
-        temp(output_dir+"/{tumor}_{normal}/NormalSample//pindel/tmp/{seq_name}.{chr}.INDEL_INT_final"),
-        temp(output_dir+"/{tumor}_{normal}/NormalSample//pindel/tmp/{seq_name}.{chr}.INDEL_RP"),
+        temp(output_dir+"/{tumor}_{normal}/NormalSample/pindel/tmp/{seq_name}.{chr}.INDEL_D"),
+        temp(output_dir+"/{tumor}_{normal}/NormalSample/pindel/tmp/{seq_name}.{chr}.INDEL_LI"),
+        temp(output_dir+"/{tumor}_{normal}/NormalSample/pindel/tmp/{seq_name}.{chr}.INDEL_INV"),
+        temp(output_dir+"/{tumor}_{normal}/NormalSample/pindel/tmp/{seq_name}.{chr}.INDEL_TD"),
+        temp(output_dir+"/{tumor}_{normal}/NormalSample/pindel/tmp/{seq_name}.{chr}.INDEL_BP"),
+        temp(output_dir+"/{tumor}_{normal}/NormalSample/pindel/tmp/{seq_name}.{chr}.INDEL_CloseEndMapped"),
+        temp(output_dir+"/{tumor}_{normal}/NormalSample/pindel/tmp/{seq_name}.{chr}.INDEL_INT_final"),
+        temp(output_dir+"/{tumor}_{normal}/NormalSample/pindel/tmp/{seq_name}.{chr}.INDEL_RP"),
     container:
         "docker://ngsom/tumorseq"
     params:
@@ -1488,8 +1515,6 @@ rule pindel2vcfGerm :
         INV_file=output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.merge.INDEL_INV",
         TD_file=output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.merge.INDEL_TD",
         BP_file=output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.merge.INDEL_BP",
-        bam=output_dir+"/{seq_name}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
-        index=output_dir+"/{seq_name}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
         ref=config["genome"]["fasta_file"],
     output:
         output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.INDEL.pindel.germline.vcf",
@@ -1502,24 +1527,19 @@ rule pindel2vcfGerm :
         pindel2vcf --pindel_output_root {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/NormalSample/pindel/{wildcards.seq_name}.merge.INDEL -r {input.ref} -R HG19 -d 20101123-v -w 300 -mc 10 -e 5 --het_cutoff 0.05 --hom_cutoff 0.75 -v {output}
         """
 
-rule GATK_left_align_pindelGerm :
+rule pindel_filter_region :
     input:
         vcf=output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.INDEL.pindel.germline.vcf",
-        ref=config["genome"]["fasta_file"]
+        ref=config["genome"]["fasta_file"],
+        target=config["metadata"]["design"],
     output:
-        output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.INDEL.pindel.germline.LeftAlign.vcf"
+        output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.INDEL.pindel.germline.recode.vcf"
     container:
-        "docker://broadinstitute/gatk:4.2.2.0"
+        "docker://ngsom/tumorseq"
     params:
         base_dir=output_dir
     shell:"""
-        # Left Align
-        gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
-        --reference {input.ref} \
-        --variant {input.vcf} \
-        --split-multi-allelics \
-        --O {output}
+        vcftools --vcf {input.vcf} --bed {input.target} --recode-INFO-all --recode --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/NormalSample/pindel/{wildcards.seq_name}.INDEL.pindel.germline
         """
 
 #Run MSI analysis
@@ -1539,7 +1559,7 @@ rule msisensor:
     shell:
         """
         msisensor2 msi -d /shared/projects/pmngs/human_genome_hg19/annot/microsatellites.list -c 20 -b 8 -n {input.paired[0]} -t {input.paired[1]} -o {output}
-	    awk 'BEGIN{OFS="\t"} NR==1{print \$0,"SAMPLE"} NR>1{print \$0,"${pairedID}"}' {output} > {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/{wildcards.seq_name}_vs_{wildcards.normal}.msi.tmp
+	    awk 'BEGIN{{OFS="\t"}} NR==1{{print $0,"SAMPLE"}} NR>1{{print $0,"{wildcards.seq_name}"}}' {output} > {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/{wildcards.seq_name}_vs_{wildcards.normal}.msi.tmp
 	    mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/{wildcards.seq_name}_vs_{wildcards.normal}.msi.tmp {output}
         """
 
@@ -1605,8 +1625,8 @@ rule FreeBayesSomatic :
     #Somatic Variant calling with FreeBayes
     freebayes -b {input.paired[0]} -b {input.paired[1]} \
     -v {output} \
-    -t $design \
-    -f $genome \
+    -t {input.target} \
+    -f {input.ref} \
     -F 0.02 \
     --min-coverage 10 \
     -C 2 \
@@ -1621,7 +1641,8 @@ rule FreeBayesSomatic :
 
 rule FreeBayesSomaticFilter :
     input:
-        vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.FreeBayes.somatic.vcf"
+        paired=get_paired_samples,
+        vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.FreeBayes.vcf"
     output:
         config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.FreeBayes.somatic.vcf"
     container:
@@ -1631,7 +1652,11 @@ rule FreeBayesSomaticFilter :
     shell:"""
     #Somatic Filter
     # Filter FreeBayes somatic test
-    workflow/scripts/somatic_freebayes.py {input.vcf} {wildcards.tumor} {wildcards.normal} > {output}
+    file_name_normal=$(basename {input.paired[1]})
+	seq_name_normal=${{file_name_normal%.sort*}}
+    file_name_tumor=$(basename {input.paired[0]})
+	seq_name_tumor=${{file_name_tumor%.sort*}}
+    workflow/scripts/somatic_freebayes.py {input.vcf} $seq_name_tumor $seq_name_normal > {output}
     """
 
 rule GATK_left_align_FreeBayesSomatic :
@@ -1658,17 +1683,17 @@ rule split_snp_indel_FreeBayesSomatic :
     input:
         vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.FreeBayes.somatic.LeftAlign.vcf"
     output:
-        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.SNP.FreeBayes.somatic.LeftAlign.vcf"
+        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.SNP.FreeBayes.somatic.LeftAlign.vcf",
         config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.INDEL.FreeBayes.somatic.LeftAlign.vcf"
     container:
         "docker://ngsom/tumorseq"
     params:
         base_dir=output_dir
     shell:"""
-        vcftools --vcf {input.vcf} --keep-only-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.INDEL.FreeBayes.somatic.LeftAlign
-        mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.INDEL.FreeBayes.somatic.LeftAlign.recode.vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.INDEL.FreeBayes.somatic.LeftAlign.vcf
-        vcftools --vcf {input.vcf} --remove-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.SNP.FreeBayes.somatic.LeftAlign
-        mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.SNP.FreeBayes.somatic.LeftAlign.recode.vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.SNP.FreeBayes.somatic.LeftAlign.vcf
+        vcftools --vcf {input.vcf} --keep-only-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.FreeBayes.somatic.LeftAlign
+        mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.FreeBayes.somatic.LeftAlign.recode.vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.FreeBayes.somatic.LeftAlign.vcf
+        vcftools --vcf {input.vcf} --remove-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{wildcards.seq_name}_vs_{wildcards.normal}.SNP.FreeBayes.somatic.LeftAlign
+        mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{wildcards.seq_name}_vs_{wildcards.normal}.SNP.FreeBayes.somatic.LeftAlign.recode.vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/FreeBayes/{wildcards.seq_name}_vs_{wildcards.normal}.SNP.FreeBayes.somatic.LeftAlign.vcf
         """
 
 #Mutect1 SNV
@@ -1741,21 +1766,21 @@ rule SomaticSniper :
 rule SomaticSniperFilterRegion :
     input:
         vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.vcf",
-        target==config["metadata"]["design"]
+        target=config["metadata"]["design"]
     output:
-        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.somatic.vcf"
+        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.somatic.recode.vcf"
     container:
         "docker://ngsom/somatic"
     params:
         base_dir=output_dir
     shell:"""
     # keep variant in region
-    vcftools --vcf $vcf --bed {input.target} --recode-INFO-all --recode --out {output}
+    vcftools --vcf {input.vcf} --bed {input.target} --recode-INFO-all --recode --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/SomaticSniper/{wildcards.seq_name}_vs_{wildcards.normal}.SomaticSniper.somatic
     """
 
 rule SomaticSniperBreakMulti :
     input:
-        vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.somatic.vcf"
+        vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.somatic.recode.vcf"
     output:
         config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SNP.SomaticSniper.somatic.vcf"
     container:
@@ -1773,10 +1798,6 @@ rule LofreqSomatic :
         ref_dict=config["genome"]["dict_file"],
         target=config["metadata"]["design"],
     output:
-        dindel_tumor=temp(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/LoFreq/{seq_name}.dindel.bam"),
-        dindel_normal=temp(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/LoFreq/{normal}.dindel.bam"),
-        index_tumor=temp(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/LoFreq/{seq_name}.dindel.bam.bai"),
-        index_normal=temp(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/LoFreq/{normal}.dindel.bam.bai"),
         snp=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.SNP.Lofreq.somatic.vcf",
         indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.INDEL.Lofreq.somatic.vcf"
     container:
@@ -1785,15 +1806,19 @@ rule LofreqSomatic :
         base_dir=output_dir
     shell:"""
     #Somatic Variant calling with LoFreq
-    lofreq indelqual --dindel --ref {input.ref} -o {output.dindel_tumor} {input.paired[0]}
-    samtools index {output.dindel_tumor}
-    lofreq indelqual --dindel --ref $genome -o {output.dindel_normal} {input.paired[1]}
-    samtools index {output.dindel_normal}
-    lofreq somatic --call-indels -n {output.dindel_normal} -t {output.dindel_tumor} -f {input.ref} --threads 8 -l {input.target} -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.
+    lofreq indelqual --dindel --ref {input.ref} -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/normal.dindel.bam {input.paired[1]}
+	lofreq indelqual --dindel --ref {input.ref} -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/tumor.dindel.bam {input.paired[0]}
+	samtools index {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/normal.dindel.bam
+	samtools index {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/tumor.dindel.bam
+    lofreq somatic --call-indels -n {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/normal.dindel.bam -t {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/tumor.dindel.bam -f {input.ref} --threads 8 -l {input.target} -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.
     gunzip -f {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.somatic_final.snvs.vcf.gz
     gunzip -f {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.somatic_final.indels.vcf.gz
     mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.somatic_final.snvs.vcf {output.snp}
     mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.somatic_final.indels.vcf {output.indel}
+    rm {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/normal.dindel.bam
+    rm {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/tumor.dindel.bam
+    rm {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/normal.dindel.bam.bai
+    rm {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/tumor.dindel.bam.bai
     """
 
 rule GATK_left_align_LoFreqSomatic :
@@ -1831,7 +1856,6 @@ rule MuseSomatic :
         ref_dict=config["genome"]["dict_file"],
         target=config["metadata"]["design"],
     output:
-        bed=temp(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Muse/region_muse.bed"),
         txt=temp(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Muse/{seq_name}_vs_{normal}.MuSE.txt"),
         vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Muse/{seq_name}_vs_{normal}.SNP.Muse.somatic.vcf"
     container:
@@ -1840,9 +1864,10 @@ rule MuseSomatic :
         base_dir=output_dir
     shell:"""
     #Somatic Variant calling with Muse
-    awk '{{print $1":"$2"-"$3}}' {input.target} > {output.bed}
-	MuSE call -O {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Muse/{wildcards.seq_name}_vs_{wildcards.normal} -f {input.ref} -l {output.bed} {input.paired[0]} {input.paired[1]}
+    awk '{{print $1":"$2"-"$3}}' {input.target} > {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Muse/region_muse.bed
+	MuSE call -O {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Muse/{wildcards.seq_name}_vs_{wildcards.normal} -f {input.ref} -l {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Muse/region_muse.bed {input.paired[0]} {input.paired[1]}
 	MuSE sump -I {output.txt} -E -O {output.vcf} -D /shared/projects/pmngs/human_genome_hg19/annot/dbsnp_138.hg19.vcf.gz
+    rm {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Muse/region_muse.bed
     """
 
 rule GATK_left_align_MuseSomatic :
@@ -1872,8 +1897,8 @@ rule StrelkaSomatic :
         ref_dict=config["genome"]["dict_file"],
         target=config["metadata"]["design"],
     output:
-        snp=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.SNP.Strelka.somatic.vcf",
-        indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.SNP.Strelka.somatic.vcf"
+        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.SNP.Strelka.somatic.recode.vcf",
+        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.INDEL.Strelka.somatic.recode.vcf"
     container:
         "docker://ngsom/somatic"
     params:
@@ -1881,31 +1906,15 @@ rule StrelkaSomatic :
     shell:"""
     #Somatic Variant calling with Strelka
     source activate utils
-    configureStrelkaSomaticWorkflow.py --exome --normal={input.paired[1]} --tumor={input.paired[0]} --ref={input.ref} --runDir={params.base_dir}/{wildcards.tumor}_{widlcards.normal}/SomaticAnalysis/Strelka
-    {params.base_dir}/{wildcards.tumor}_{widlcards.normal}/SomaticAnalysis/Strelka/runWorkflow.py -m local -j 8 ;
-    gunzip -f {params.base_dir}/{wildcards.tumor}_{widlcards.normal}/SomaticAnalysis/Strelka/results/variants/somatic.indels.vcf.gz
-    gunzip -f {params.base_dir}/{wildcards.tumor}_{widlcards.normal}/SomaticAnalysis/Strelka/results/variants/somatic.snvs.vcf.gz
-    mv {params.base_dir}/{wildcards.tumor}_{widlcards.normal}/SomaticAnalysis/Strelka/results/variants/somatic.indels.vcf {output.indel}
-    mv {params.base_dir}/{wildcards.tumor}_{widlcards.normal}/SomaticAnalysis/Strelka/results/variants/somatic.snvs.vcf.gz {output.snp}
-    rm -r workspace/*
-    """
-
-rule StrelkaSomaticFilterRegion :
-    input:
-        snp=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.SNP.Strelka.somatic.vcf",
-        indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.SNP.Strelka.somatic.vcf"
-        target==config["metadata"]["design"]
-    output:
-        snp=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.SNP.Strelka.somatic.recode.vcf",
-        indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.SNP.Strelka.somatic.recode.vcf"
-    container:
-        "docker://ngsom/tumorseq"
-    params:
-        base_dir=output_dir
-    shell:"""
-    # keep variant in region
-    vcftools --vcf {input.snp} --bed {input.target} --recode-INFO-all --recode --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/{wildcards.seq_name}_vs_{wildcards.normal}.SNP.Strelka.somatic
-    vcftools --vcf {input.indel} --bed {input.target} --recode-INFO-all --recode --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/{wildcards.seq_name}_vs_{wildcards.normal}.SNP.Strelka.somatic
+    configureStrelkaSomaticWorkflow.py --exome --normal={input.paired[1]} --tumor={input.paired[0]} --ref={input.ref} --runDir={params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka
+    {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/runWorkflow.py -m local -j 8 ;
+    gunzip {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/results/variants/*.gz ;
+    rm {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/results/variants/*.gz.tbi ;
+    vcftools --vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/results/variants/somatic.snvs.vcf --bed {input.target} --recode-INFO-all  --recode --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/{wildcards.seq_name}_vs_{wildcards.normal}.Strelka.somatic.snv ;
+    mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/{wildcards.seq_name}_vs_{wildcards.normal}.Strelka.somatic.snv.recode.vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/{wildcards.seq_name}_vs_{wildcards.normal}.SNP.Strelka.somatic.recode.vcf ;
+    vcftools --vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/results/variants/somatic.indels.vcf --bed {input.target} --recode-INFO-all --recode --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/{wildcards.seq_name}_vs_{wildcards.normal}.Strelka.somatic.indel ;
+    mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/{wildcards.seq_name}_vs_{wildcards.normal}.Strelka.somatic.indel.recode.vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.Strelka.somatic.recode.vcf ;
+    rm -r {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Strelka/workspace/*
     """
 
 #Mutect2 SNV + INDEL GATK 4.2
@@ -1921,13 +1930,15 @@ rule Mutect2Somatic:
         "docker://broadinstitute/gatk:4.2.2.0"
     shell:"""
         # Mutect2 Somatic
+        file_name=$(basename {input.paired[1]})
+		name=${{file_name%.sort*}}
         gatk Mutect2 \
         --java-options -Xmx16G \
         --native-pair-hmm-threads 8 \
         --reference {input.ref} \
         -I {input.paired[0]} \
         -I {input.paired[1]} \
-        -normal {wildcards.normal} \
+        -normal $name \
         -germline-resource /shared/projects/pmngs/human_genome_hg19/annot/somatic-hg19_af-only-gnomad.raw.sites.vcf.gz \
         -pon /shared/projects/pmngs/human_genome_hg19/annot/pon_impact.vcf.gz \
         -L {input.target} \
@@ -1997,6 +2008,28 @@ rule GATK_left_align_Mutect2 :
         --O {output}
         """
 
+rule Funcotator_mutect2_somatic :
+    input:
+        vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.Mutect2.somatic.filtered.LeftAlign.vcf",
+        ref=config["genome"]["fasta_file"]
+    output:
+        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Funcotator/{seq_name}_vs_{normal}.variants.funcotated.maf",
+    container:
+        "docker://broadinstitute/gatk:4.2.2.0"
+    params:
+        base_dir=output_dir
+    shell:"""
+        # Funcotator vcf to maf
+        gatk Funcotator \
+        --variant {input.vcf} \
+        --reference {input.ref} \
+        --ref-version hg19 \
+        --data-sources-path /shared/projects/pmngs/funcotator_dataSources.v1.7.20200521s \
+        --output {output} \
+        --output-file-format MAF
+        """
+
+
 rule split_snp_indel_Mutect2 :
     input:
         ref=config["genome"]["fasta_file"],
@@ -2061,10 +2094,10 @@ rule split_snp_indel_VarDict :
     params:
         base_dir=output_dir
     shell:"""
-        vcftools --vcf {input.vcf} --keep-only-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.INDEL.VarDict.somatic.LeftAlign
-        mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.INDEL.VarDict.somatic.LeftAlign.recode.vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.INDEL.VarDict.somatic.LeftAlign.vcf
-        vcftools --vcf {input.vcf} --remove-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.SNP.VarDict.somatic.LeftAlign
-        mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.SNP.VarDict.somatic.LeftAlign.recode.vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.SNP.VarDict.somatic.LeftAlign.vcf
+        vcftools --vcf {input.vcf} --keep-only-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.VarDict.somatic.LeftAlign
+        mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.VarDict.somatic.LeftAlign.recode.vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.VarDict.somatic.LeftAlign.vcf
+        vcftools --vcf {input.vcf} --remove-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{wildcards.seq_name}_vs_{wildcards.normal}.SNP.VarDict.somatic.LeftAlign
+        mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{wildcards.seq_name}_vs_{wildcards.normal}.SNP.VarDict.somatic.LeftAlign.recode.vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/VarDict/{wildcards.seq_name}_vs_{wildcards.normal}.SNP.VarDict.somatic.LeftAlign.vcf
         """
 
 rule prepare_pindel_somatic :
@@ -2080,7 +2113,7 @@ rule prepare_pindel_somatic :
     params:
         base_dir=output_dir,
     shell:"""
-    echo -e \"{input.paired[1]}\t150\tTUMOR\n{input.paired[0]}\t150\tNORMAL\" > {output}
+    echo -e \"{input.paired[0]}\t150\tTUMOR\n{input.paired[1]}\t150\tNORMAL\" > {output}
     """
 
 rule pindel_somatic :
@@ -2103,7 +2136,7 @@ rule pindel_somatic :
         base_dir=output_dir
     shell:
         """
-        pindel -T 4 -f {input.ref} -i {input.config} --chromosome {wildcards.chr} -w 10 -M 5 -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/pindel/tmp/{wildcards.seq_name}.{wildcards.chr}.INDEL
+        pindel -T 4 -f {input.ref} -i {input.config} --chromosome {wildcards.chr} -w 10 -M 5 -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/pindel/tmp/{wildcards.seq_name}.{wildcards.chr}.INDEL
         """
 
 rule merge_pindel_filesSomatic :
@@ -2161,20 +2194,20 @@ rule pindelFilterSomatic :
     output:
         output_dir+"/{tumor}_{normal}/SomaticAnalysis/pindel/{seq_name}_vs_{normal}.INDEL.pindel.somatic.vcf",
     container:
-        "docker://ngsom/tumorseq"
+        "docker://ngsom/somatic"
     params:
         base_dir=output_dir
     shell:
         """
         bgzip -f {input}
-        tabix -f -p vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/pindel/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.pindel.somatic.vcf.gz
-        bcftools view -Ov --samples TUMOR --private --exclude-uncalled --min-ac=1 {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/pindel/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.pindel.somatic.vcf.gz > {output}
+        tabix -f -p vcf {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/pindel/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.pindel.vcf.gz
+        bcftools view -Ov --samples TUMOR --private --exclude-uncalled --min-ac=1 {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/pindel/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.pindel.vcf.gz > {output}
         """
 
 rule pindelSomaticFilterRegion :
     input:
         vcf=output_dir+"/{tumor}_{normal}/SomaticAnalysis/pindel/{seq_name}_vs_{normal}.INDEL.pindel.somatic.vcf",
-        target==config["metadata"]["design"]
+        target=config["metadata"]["design"]
     output:
         output_dir+"/{tumor}_{normal}/SomaticAnalysis/pindel/{seq_name}_vs_{normal}.INDEL.pindel.somatic.recode.vcf",
     container:
@@ -2183,7 +2216,7 @@ rule pindelSomaticFilterRegion :
         base_dir=output_dir
     shell:"""
     # keep variant in region
-    vcftools --vcf {input.vcf} --bed {input.target} --recode-INFO-all --recode --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Pindel/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.pindel.somatic
+    vcftools --vcf {input.vcf} --bed {input.target} --recode-INFO-all --recode --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/pindel/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.pindel.somatic
     """
 
 rule ScalpelSomatic :
@@ -2195,13 +2228,13 @@ rule ScalpelSomatic :
     output:
         config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Scalpel/{seq_name}_vs_{normal}.INDEL.Scalpel.somatic.vcf"
     container:
-        "docker://ngsom/tumorseq"
+        "docker://lethalfang/scalpel:0.5.4"
     params:
         base_dir=output_dir,
         dedup=dedup_option_vardict
     shell:"""
-    scalpel-discovery --somatic --normal {input.paired[1]} --tumor {input.paired[1]} --bed {input.target} --ref {input.ref} --dir {params.base_dir}/{wildcards.tumor}_{widlcards.normal}/SomaticAnalysis/Scalpel --numprocs 8 --intarget
-    scalpel-export --somatic --db  {params.base_dir}/{wildcards.tumor}_{widlcards.normal}/SomaticAnalysis/Scalpel/main/somatic.db.dir --bed {input.target} --ref {input.ref} --min-alt-count-tumor 2 --min-vaf-tumor 0.02 --min-coverage-tumor 10 --intarget >  {params.base_dir}/{wildcards.tumor}_{widlcards.normal}/SomaticAnalysis/Scalpel/{wildcards.seq_name}_vs_{widlcards.normal}.INDEL.Scalpel.somatic.vcf
+    /opt/scalpel-0.5.4/scalpel-discovery --somatic --normal {input.paired[1]} --tumor {input.paired[1]} --bed {input.target} --ref {input.ref} --dir {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Scalpel --numprocs 8 --intarget
+    /opt/scalpel-0.5.4/scalpel-export --somatic --db  {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Scalpel/main/somatic.db.dir --bed {input.target} --ref {input.ref} --min-alt-count-tumor 2 --min-vaf-tumor 0.02 --min-coverage-tumor 10 --intarget >  {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Scalpel/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.Scalpel.somatic.vcf
     """
 
 #Merge vcf SNP Germline
@@ -2234,7 +2267,7 @@ rule merge_indel_caller_germline :
         varscan2_indel=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/VarScan2/{seq_name}.INDEL.VarScan2.germline.LeftAlign.vcf",
         strelka_indel=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Strelka/{seq_name}.INDEL.Strelka.germline.LeftAlign.vcf",
         scalpel_indel=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Scalpel/{seq_name}.INDEL.Scalpel.germline.LeftAlign.vcf",
-        pindel_indel=output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.INDEL.pindel.germline.LeftAlign.vcf"
+        pindel_indel=output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.INDEL.pindel.germline.recode.vcf"
     output:
         output_dir+"/{tumor}_{normal}/NormalSample/{seq_name}.INDEL.germline.merge.vcf",
     container:
@@ -2250,12 +2283,12 @@ rule merge_indel_caller_germline :
 #Merge vcf SNP Germline
 rule merge_snv_caller_somatic :
     input:
-        freebayes_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.SNP.FreeBayes.somatic.LeftAlign.vcf"
+        freebayes_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.SNP.FreeBayes.somatic.LeftAlign.vcf",
         lofreq_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.SNP.Lofreq.somatic.LeftAlign.vcf",
-        muse_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Muse/{seq_name}_vs_{normal}.SNP.Muse.somatic.LeftAlign.vcf"
-        mutect_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Mutect/{seq_name}_vs_{normal}.SNP.Mutect.somatic.LeftAlign.vcf"
+        muse_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Muse/{seq_name}_vs_{normal}.SNP.Muse.somatic.LeftAlign.vcf",
+        mutect_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Mutect/{seq_name}_vs_{normal}.SNP.Mutect.somatic.LeftAlign.vcf",
         mutect2_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.SNP.Mutect2.somatic.LeftAlign.vcf",
-        sniper_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SNP.SomaticSniper.somatic.vcf"
+        sniper_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SNP.SomaticSniper.somatic.vcf",
         varscan2_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/VarScan2/{seq_name}_vs_{normal}.SNP.VarScan2.somatic.LeftAlign.vcf",
         strelka_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.SNP.Strelka.somatic.recode.vcf",
         vardict_snv=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.SNP.VarDict.somatic.LeftAlign.vcf"
@@ -2273,12 +2306,12 @@ rule merge_snv_caller_somatic :
 
 rule merge_indel_caller_somatic :
     input:
-        freebayes_indem=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.SNP.FreeBayes.somatic.LeftAlign.vcf"
-        lofreq_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.SNP.Lofreq.somatic.LeftAlign.vcf",
-        mutect2_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.SNP.Mutect2.somatic.LeftAlign.vcf",
-        varscan2_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/VarScan2/{seq_name}_vs_{normal}.SNP.VarScan2.somatic.LeftAlign.vcf",
-        strelka_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.SNP.Strelka.somatic.recode.vcf",
-        vardict_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.SNP.VarDict.somatic.LeftAlign.vcf"
+        freebayes_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.INDEL.FreeBayes.somatic.LeftAlign.vcf",
+        lofreq_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.INDEL.Lofreq.somatic.LeftAlign.vcf",
+        mutect2_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.INDEL.Mutect2.somatic.LeftAlign.vcf",
+        varscan2_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/VarScan2/{seq_name}_vs_{normal}.INDEL.VarScan2.somatic.LeftAlign.vcf",
+        strelka_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.INDEL.Strelka.somatic.recode.vcf",
+        vardict_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.INDEL.VarDict.somatic.LeftAlign.vcf",
         pindel_indel=output_dir+"/{tumor}_{normal}/SomaticAnalysis/pindel/{seq_name}_vs_{normal}.INDEL.pindel.somatic.recode.vcf",
         scalpel_indel=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Scalpel/{seq_name}_vs_{normal}.INDEL.Scalpel.somatic.vcf"
     output:
@@ -2290,7 +2323,7 @@ rule merge_indel_caller_somatic :
     shell:
         """
         source activate utils
-        workflow/scripts/merge_caller_somatic_indel.py {input.freebayes_indel} {input.lofreq_indel} {input.mutect2_indel} ${input.pindel_indel} {input.scalpel_indel} {input.strelka_indel} {input.vardict_indel} {input.varscan2_indel} {output}
+        workflow/scripts/merge_caller_somatic_indel.py {input.freebayes_indel} {input.lofreq_indel} {input.mutect2_indel} {input.pindel_indel} {input.scalpel_indel} {input.strelka_indel} {input.vardict_indel} {input.varscan2_indel} {output}
         """
 
 rule filter_snv_germline :
@@ -2368,6 +2401,55 @@ rule filter_indel_somatic :
         source activate utils
         workflow/scripts/filter_vcf.py -p 8 -f none {input.vcf} {input.bam} {input.ref} {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/{wildcards.seq_name}_vs_{wildcards.normal}.INDEL.somatic.merge
         """
+
+#SAllelic copy number estimation with Sequenza
+rule bam2seqz :
+    input:
+        paired=get_paired_samples,
+        ref=config["genome"]["fasta_file"],
+        ref_dict=config["genome"]["dict_file"],
+        target=config["metadata"]["design"],
+    output:
+        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.gz"
+    container:
+        "docker://ngsom/somatic"
+    params:
+        base_dir=output_dir,
+    shell:"""
+    sequenza-utils bam2seqz \
+    -n {input.paired[1]} \
+    -t {input.paired[0]} \
+    --fasta {input.ref} \
+    -gc /shared/projects/pmngs/human_genome_hg19/annot/hg19.gc50Base.wig.gz \
+    -o {output} \
+    --chromosome chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr19 chr20 chr21 chr22 chrX
+    """
+
+rule seqz_binning :
+    input:
+        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.gz"
+    output:
+        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.bin50.seqz.gz"
+    container:
+        "docker://ngsom/somatic"
+    params:
+        base_dir=output_dir,
+    shell:"""
+    sequenza-utils seqz_binning --seqz {input} -w 50 -o {output}
+    """
+
+rule sequenza :
+    input:
+        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.gz"
+    output:
+        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.gz_segments.txt"
+    container:
+        "docker://ngsom/bioconductor"
+    params:
+        base_dir=output_dir,
+    shell:"""
+    workflow/scripts/sequenza.R {input} {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/Sequenza
+    """
 
 #Run delly somatic
 rule Delly :
@@ -2471,8 +2553,8 @@ rule MergeDellyAnnotAndStat :
 #Somatic annotation
 rule SomaticAnnotation:
     input:
-        snv_vcf=output_dir+"/{tumor}_{normal}/SomaticAnalysis/{seq_name}_vs_{normal}.SNP.somatic.merge.filtered.vcf",
-        snv_stats=output_dir+"/{tumor}_{normal}/SomaticAnalysis/{seq_name}_vs_{normal}.SNP.somatic.merge.stats",
+        snp_vcf=output_dir+"/{tumor}_{normal}/SomaticAnalysis/{seq_name}_vs_{normal}.SNP.somatic.merge.filtered.vcf",
+        snp_stats=output_dir+"/{tumor}_{normal}/SomaticAnalysis/{seq_name}_vs_{normal}.SNP.somatic.merge.stats",
         indel_vcf=output_dir+"/{tumor}_{normal}/SomaticAnalysis/{seq_name}_vs_{normal}.INDEL.somatic.merge.filtered.vcf",
         indel_stats=output_dir+"/{tumor}_{normal}/SomaticAnalysis/{seq_name}_vs_{normal}.INDEL.somatic.merge.stats",
     output:
@@ -2528,48 +2610,48 @@ rule qualimap:
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"],
     output:
-        config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/QC/qualimapReport.html",
-        temp(config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{wildcards.seq_name}.target.bed")
+        config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/qualimapReport.html"
     params:
         base_dir=output_dir
     container:
         "docker://ngsom/tumorseq"
     shell:
         """
-        awk '{{print $1"\t"$2"\t"$3"\t"$4"\t.\t." }}' {input.target} > {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/{wildcards.type_of_sample}/{wildcards.seq_name}.target.bed ;
-        qualimap bamqc -nt 8 -bam {input.bam} --java-mem-size=64G -outdir {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/{wildcards.type_of_sample}/QC -gff {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/{wildcards.type_of_sample}/{wildcards.seq_name}.target.bed;
+        awk '{{print $1"\t"$2"\t"$3"\t"$4"\t.\t." }}' {input.target} > {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/{wildcards.type_of_sample}/{wildcards.seq_name}.target.bed
+        qualimap bamqc -nt 8 -bam {input.bam} --java-mem-size=64G -outdir {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/{wildcards.type_of_sample}/report_{wildcards.seq_name} -gff {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/{wildcards.type_of_sample}/{wildcards.seq_name}.target.bed
+        rm {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/{wildcards.type_of_sample}/{wildcards.seq_name}.target.bed
         """
 
 rule CoverageUniformity :
     input:
-        index=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"realigned.recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"realigned.recall."+"bam",
+        index=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
+        bam=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
         target=config["metadata"]["design"],
         chrLength=config["genome"]["chrLength_file"],
     output:
-        temp(config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/QC/{seq_name}.cov")
-        config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/QC/{seq_name}.cov.uniformity"
+        cov=temp(config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.cov"),
+        uniformity=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.cov.uniformity"
     container:
         "docker://ngsom/tumorseq"
     params:
         base_dir=output_dir
     shell:
         """
-		bedtools coverage -sorted -d -g {input.chrLength} -a {input.target} -b {input.bam} > {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/QC/{wildcards.seq_name}.cov
+		bedtools coverage -sorted -d -g {input.chrLength} -a {input.target} -b {input.bam} > {output.cov}
 		source activate utils2
-	    workflow/scripts/coverage_uniformity2.py {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/QC/{wildcards.seq_name}.cov {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/QC/{wildcards.seq_name}.cov.uniformity
+	    workflow/scripts/coverage_uniformity2.py {output.cov} {output.uniformity}
         """
 
 rule collect_metrics :
     input:
-        qualimap_report=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/QC/qualimapReport.html",
-        cov_uni=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/QC/{seq_name}.cov.uniformity"
-        adapt_bias=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/QC/{seq_name}.pre_adapter_summary_metrics.txt",
-        bait_bias=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/QC/{seq_name}.bait_bias_summary_metrics.txt",
-        error=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/QC/{seq_name}.error_summary_metrics.txt" ,
+        qualimap_report=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/qualimapReport.html",
+        cov_uni=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.cov.uniformity",
+        adapt_bias=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.pre_adapter_summary_metrics.txt",
+        bait_bias=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.bait_bias_summary_metrics.txt",
+        error=config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.error_summary_metrics.txt" ,
         fastqc = fastqc_output
     output:
-        config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/QC/{seq_name}.bam.qc"
+        config["dir"]["base"]+"/{tumor}_{normal}/{type_of_sample}/report_{seq_name}/{seq_name}.bam.qc"
     container:
         "docker://ngsom/tumorseq"
     params:
@@ -2595,6 +2677,7 @@ rule mergeSomaticSNVResult :
         head -q -n 1 {input} | head -q -n 1 > {params.base_dir}/somatic.snv.txt || error_exit 'head failed'
         tail -q -n +2 {input} >> {params.base_dir}/somatic.snv.txt || error_exit 'tail failed'
         awk 'BEGIN{{OFS="\t"}} NR==1 ;NR > 1 {{print $0 | "sort -k3d,3d -k4n,4n -k2d,2d" }}' {params.base_dir}/somatic.snv.txt > {params.base_dir}/somatic.snv.sort.txt || error_exit 'awk failed'
+        source activate utils
         workflow/scripts/prioritize_variants.py -m snp {params.base_dir}/somatic.snv.sort.txt {params.base_dir}/somatic.snv.prio.txt || error_exit 'prioritize failed'
         awk 'BEGIN{{OFS="\t"}} NR==1{{print $0,"STATUT"}} NR>1{{print $0,"SOMATIC"}}' {params.base_dir}/somatic.snv.prio.txt > {output} || error_exit 'awk3 failed'
         rm {params.base_dir}/somatic.snv.txt || error_exit 'rm failed'
@@ -2617,11 +2700,12 @@ rule mergeSomaticINDELResult :
         head -q -n 1 {input} | head -q -n 1 > {params.base_dir}/somatic.indel.txt || error_exit 'head failed'
         tail -q -n +2 {input} >> {params.base_dir}/somatic.indel.txt || error_exit 'tail failed'
         awk 'BEGIN{{OFS="\t"}} NR==1 ; NR > 1 {{print $0 | "sort -k3d,3d -k4n,4n -k2d,2d" }}' {params.base_dir}/somatic.indel.txt > {params.base_dir}/somatic.indel.sort.txt || error_exit 'awk failed'
+        source activate utils
         workflow/scripts/prioritize_variants.py -m indel {params.base_dir}/somatic.indel.sort.txt {params.base_dir}/somatic.indel.prio.txt || error_exit 'prioritize failed'
         awk 'BEGIN{{OFS="\t"}} NR==1{{print $0,"STATUT"}} NR>1{{print $0,"SOMATIC"}}' {params.base_dir}/somatic.indel.prio.txt > {output} || error_exit 'awk3 failed'
         rm {params.base_dir}/somatic.indel.txt || error_exit 'rm failed'
         rm {params.base_dir}/somatic.indel.sort.txt || error_exit 'rm failed'
-        m {params.base_dir}/somatic.indel.prio .txt || error_exit 'rm failed'
+        rm {params.base_dir}/somatic.indel.prio.txt || error_exit 'rm failed'
         """
 
 #Merge Indel SV result
@@ -2652,6 +2736,7 @@ rule mergeGermlineSNVResult :
         head -q -n 1 {input} | head -q -n 1 > {params.base_dir}/germline.snv.txt || error_exit 'head failed'
         tail -q -n +2 {input} >> {params.base_dir}/germline.snv.txt || error_exit 'tail failed'
         awk 'BEGIN{{OFS="\t"}} NR==1 ; NR > 1 {{print $0 | "sort -k3d,3d -k4n,4n -k2d,2d" }}' {params.base_dir}/germline.snv.txt > {params.base_dir}/germline.snv.sort.txt || error_exit 'awk failed'
+        source activate utils
         workflow/scripts/prioritize_variants.py -m snp {params.base_dir}/germline.snv.sort.txt {params.base_dir}/germline.snv.prio.txt || error_exit 'prioritize failed'
         awk 'BEGIN{{OFS="\t"}} NR==1{{print $0,"STATUT"}} NR>1{{print $0,"GERMLINE"}}' {params.base_dir}/germline.snv.prio.txt > {output} || error_exit 'awk2 failed'
         rm {params.base_dir}/germline.snv.txt || error_exit 'rm failed'
@@ -2674,10 +2759,11 @@ rule mergeGermlineINDELResult :
         head -q -n 1 {input} | head -q -n 1 > {params.base_dir}/germline.indel.txt || error_exit 'head failed'
         tail -q -n +2 {input} >> {params.base_dir}/germline.indel.txt || error_exit 'tail failed'
         awk 'BEGIN{{OFS="\t"}} NR==1 ; NR > 1 {{print $0 | "sort -k3d,3d -k4n,4n -k2d,2d" }}' {params.base_dir}/germline.indel.txt > {params.base_dir}/germline.indel.sort.txt || error_exit 'awk failed'
+        source activate utils
         workflow/scripts/prioritize_variants.py -m indel {params.base_dir}/germline.indel.sort.txt {params.base_dir}/germline.indel.prio.txt || error_exit 'prioritize failed'
         awk 'BEGIN{{OFS="\t"}} NR==1{{print $0,"STATUT"}} NR>1{{print $0,"GERMLINE"}}' {params.base_dir}/germline.indel.prio.txt > {output} || error_exit 'awk2 failed'
         rm {params.base_dir}/germline.indel.txt || error_exit 'rm failed'
-        rm {params.base_dir}/germline.sort.txt || error_exit 'rm failed'
+        rm {params.base_dir}/germline.indel.sort.txt || error_exit 'rm failed'
         rm {params.base_dir}/germline.indel.prio.txt || error_exit 'rm failed'
         """
 
