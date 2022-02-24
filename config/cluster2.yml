@@ -52,6 +52,22 @@
     stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stderr"
     mem : "16G"
 
+  pindel_somatic:
+    host : "1"
+    core : "4"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stderr"
+    mem : "16G"
+
+  pindelGerm:
+    host : "1"
+    core : "4"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stderr"
+    mem : "16G"
+
   merge_pindel_files :
     host : "1"
     core : "1"
@@ -393,7 +409,7 @@
   ScalpelSomatic :
     host : "1"
     core : "8"
-    mem : "20G"
+    mem : "72G"
     time : "24:00:00"
     stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
     stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
@@ -402,6 +418,22 @@
     host : "1"
     core : "8"
     mem : "20G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  GATK_dedup_spark :
+    host : "1"
+    core : "8"
+    mem : "72G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  GATK_recalibrate_spark :
+    host : "1"
+    core : "8"
+    mem : "72G"
     time : "24:00:00"
     stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
     stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"

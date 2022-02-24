@@ -130,17 +130,6 @@ if __name__ == "__main__" :
 	output = open(output_path,"wb")
 	variants = open(input_variants,"rb")
 	csv_variants = csv.DictReader(variants,delimiter="\t")
-	#snpedia_file = open("/mnt/homedata/ngs_om/travail/annot/Homo_sapiens/personal/hg19/Annotation/snpedia_db/snpedia_db.txt","rb")
-	snpedia_db = {}
-
-	#for line in snpedia_file.readlines() :
-	#	record = line.split("\t")
-	#	record = map(strip,record)
-	#	rsid = record[0]
-	#	publi = record[3]
-	#	snpedia_db[rsid] = publi
-
-	#snpedia_file.close()
 
 	dict_mut = {}
 	csv_variants = csv.DictReader(variants,delimiter="\t",skipinitialspace=True)
@@ -148,19 +137,11 @@ if __name__ == "__main__" :
 	header = csv_variants.fieldnames
 
 	#mandatory
-	cosmic_key = [x for x in header if re.search(r'^cosmic[0-9]+$', x)]
+	cosmic_key = [x for x in header if re.search(r'^cosmic[0-9]+[_coding]?', x)]
 	try :
 		cosmic_key = header[header.index(cosmic_key[0])]
 	except IndexError :
 		print("COSMIC FIELD MISSING")
-		sys.exit(0)
-
-	#mandatory
-	g1000_key = [x for x in header if re.search(r'1000g', x)]
-	try :
-		g1000_key = header[header.index(g1000_key[0])]
-	except IndexError :
-		print("1000G FIELD MISSING")
 		sys.exit(0)
 
 	#mandatory 1
@@ -171,13 +152,14 @@ if __name__ == "__main__" :
 		print("SIFT FIELD MISSING")
 		sys.exit(0)
 
-	#mandatory 2
+	#optional 2
 	polyphen_key = [x for x in header if re.search(r'Polyphen2_HDIV_pred', x)]
 	try :
 		polyphen_key = header[header.index(polyphen_key[0])]
+		polyphen_found=True
 	except IndexError :
+		polyphen_found=False
 		print("Polyphen2 FIELD MISSING")
-		sys.exit(0)
 
 	#optional 3
 	lrt_key = [x for x in header if re.search(r'LRT_pred', x)]
@@ -260,6 +242,100 @@ if __name__ == "__main__" :
 		fatMKL_found = False
 		print("fathmm-MKL FIELD MISSING")
 
+	#optional 12
+	metaRNN_key = [x for x in header if re.search(r'MetaRNN_pred', x)]
+	try :
+		metaRNN_key = header[header.index(metaRNN_key[0])]
+		metaRNN_found = True
+	except IndexError :
+		metaRNN_found = False
+		print("MetaRNN FIELD MISSING")
+
+	################################
+	#pop allele frequency database #
+	################################
+
+	#exac non TCGA ALL
+	exac_key = [x for x in header if re.search(r'ExAC_nontcga_ALL', x)]
+	try :
+		exac_key = header[header.index(exac_key[0])]
+		exac_found = True
+	except IndexError :
+		exac_found = False
+		print("Exac_nontcga_ALL FIELD MISSING")
+
+	#Kaviar AF
+	kaviar_key = [x for x in header if re.search(r'Kaviar_AF', x)]
+	try :
+		kaviar_key = header[header.index(kaviar_key[0])]
+		kaviar_found = True
+	except IndexError :
+		kaviar_found = False
+		print("Kaviar_AF FIELD MISSING")
+
+	#HRC AF
+	hrc_key = [x for x in header if re.search(r'HRC_AF', x)]
+	try :
+		hrc_key = header[header.index(hrc_key[0])]
+		hrc_found = True
+	except IndexError :
+		hrc_found = False
+		print("HRC_AF FIELD MISSING")
+
+	#ESP 6500
+	esp_key = [x for x in header if re.search(r'esp6500siv2_all', x)]
+	try :
+		esp_key = header[header.index(esp_key[0])]
+		esp_found = True
+	except IndexError :
+		esp_found = False
+		print("esp6500siv2_all FIELD MISSING")
+
+	#1000g mandatory
+	g1000_key = [x for x in header if re.search(r'1000g', x)]
+	try :
+		g1000_key = header[header.index(g1000_key[0])]
+	except IndexError :
+		print("1000G FIELD MISSING")
+		sys.exit(0)
+
+	#avsnp
+	avsnp_key = [x for x in header if re.search(r'avsnp150', x)]
+	try :
+		avsnp_key = header[header.index(avsnp_key[0])]
+		avsnp_found = True
+	except IndexError :
+		avsnp_found = False
+		print("avsnp150 FIELD MISSING")
+
+	#avsnp AF
+	af_key = [x for x in header if re.search(r'^AF$', x)]
+	try :
+		af_key = header[header.index(af_key[0])]
+		af_found = True
+	except IndexError :
+		af_found = False
+		print("AF FIELD MISSING")
+
+	#snp129
+	snp129_key = [x for x in header if re.search(r'snp129', x)]
+	try :
+		snp129_key = header[header.index(snp129_key[0])]
+		snp129_found = True
+	except IndexError :
+		snp129_found = False
+		print("snp129 FIELD MISSING")
+
+	#snp138NonFlagged
+	snp138_key = [x for x in header if re.search(r'snp138NonFlagged', x)]
+	try :
+		snp138_key = header[header.index(snp138_key[0])]
+		snp138_found = True
+	except IndexError :
+		snp138_found = False
+		print("snp138NonFlagged FIELD MISSING")
+
+
 	for record in csv_variants :
 		try :
 			if record["ID"] in dict_mut.keys():
@@ -283,8 +359,6 @@ if __name__ == "__main__" :
 		nb_sample = len(set(record["tumor_name"] for record in csv_variants))
 	variants.close()
 
-	print nb_sample
-
 	variants = open(input_variants,"rb")
 	csv_variants = csv.DictReader(variants,delimiter="\t")
 	fieldnames = csv_variants.fieldnames
@@ -293,7 +367,7 @@ if __name__ == "__main__" :
 
 		for field in fieldnames :
 			output.write("%s\t"%field)
-		output.write("COMMENT\tVOTE_DAMAGING\tNB_VOTE\tEFFECT\tFREQ\tPUBMED_SNPEDIA")
+		output.write("COMMENT\tVOTE_DAMAGING\tNB_VOTE\tEFFECT\tFREQ")
 		output.write("\n")
 
 		for record in csv_variants :
@@ -302,7 +376,6 @@ if __name__ == "__main__" :
 			v=""
 			comment = ""
 			effect = ""
-			pubmed_snpedia = ""
 
 			#OCCURRENCE IN DATASET
 			try :
@@ -313,7 +386,7 @@ if __name__ == "__main__" :
 
 			#COSMIC OCCURRENCE
 			if record[cosmic_key] is not None :
-				if  re.search('COSM',record[cosmic_key]) :
+				if  re.search('COS[MV]',record[cosmic_key]) :
 					s = re.search("OCCURENCE=(\d+).(.*)",record[cosmic_key]).group()
 					nb_cos=nb_oc_cosmic(s)
 				else :
@@ -322,40 +395,55 @@ if __name__ == "__main__" :
 				nb_cos=0
 
 			#rs dbSNP129
-			if record["snp129"] is not None :
-				if re.search('rs',record["snp129"]):
-					rs129 = record["snp129"]
-					#if rs129 in snpedia_db.keys() :
-					#	pubmed_snpedia = snpedia_db[rs129]
+			if snp129_found is True :
+				if record[snp129_key] is not None :
+					if re.search('rs',record[snp129_key]):
+						rs129 = record[snp129_key]
+					else :
+						rs129 = None
 				else :
 					rs129 = None
 			else :
 				rs129 = None
 
 			#rs dbsnp138NonFlagged
-			if record["snp138NonFlagged"] is not None :
-				if re.search('rs',record["snp138NonFlagged"]):
-					rs137 = record["snp138NonFlagged"]
-					#if rs137 in snpedia_db.keys() :
-					#	pubmed_snpedia = snpedia_db[rs137]
-				else :
-					rs137 = None
+			if snp138_found is True :
+				if record[snp138_key] is not None :
+					if re.search('rs',record[snp138_key]):
+						rs138 = record[snp138_key]
+					else :
+						rs138 = None
+				else : 
+					rs138 = None
 			else :
-				rs137 = None
+				rs138 = None
+
+			if avsnp_found is True :
+				if record[avsnp_key] is not None :
+					if re.search('rs',record[avsnp_key]):
+						rs = record[avsnp_key]
+					else :
+						rs = None
+				else :
+					rs = None
+			else :
+				rs = None
 
 			#If the variants are very frequent in our dataset and absent from public database, it's a new hotspot, but in fact an artefact
-			if nb_cos < 10 and rs129 is None and rs137 is None :
+			if nb_cos < 10 and rs129 is None and rs138 is None and rs is None :
 				if freq_in_dataset >= math.ceil(nb_sample*0.5) :
 					comment = comment + "NEW HOTSPOT" + " | "
 				else :
 					comment = "NEW" + " | "
 
+			af  = []
 
-			#MAF 1000g
+			#AF 1000g
 			try :
 				if record[g1000_key] is not None :
 					if re.search('-?\d+\.?\d*',record[g1000_key]) :
 						g1000 = float(record[g1000_key])
+						af.append(g1000)
 					else :
 						g1000 = None
 				else :
@@ -364,16 +452,18 @@ if __name__ == "__main__" :
 				if record["1000g2015aug_all"] is not None :
 					if re.search('-?\d+\.?\d*',record["1000g2015aug_all"]) :
 						g1000 = float(record["1000g2015aug_all"])
+						af.append(g1000)
 					else :
 						g1000 = None
 				else :
 					g1000 = None
 
-			#MAF ESP6500
+			#AF ESP6500
 			try :
 				if record["esp6500siv2_all"] is not None :
 					if re.search('-?\d+\.?\d*',record["esp6500siv2_all"]) :
 						esp6500 = float(record["esp6500siv2_all"])
+						af.append(esp6500)
 					else :
 						esp6500 = None
 				else :
@@ -382,25 +472,90 @@ if __name__ == "__main__" :
 				if record["esp6500_all"] is not None :
 					if re.search('-?\d+\.?\d*',record["esp6500_all"]) :
 						esp6500 = float(record["esp6500_all"])
+						af.append(esp6500)
 					else :
 						esp6500 = None
 				else :
 					esp6500 = None
 
-			#prediction of functional effects of human nsSNPs
-			v = vote(record)
+			#AF exac
 			try :
-				majority = float(v[0])/float(v[1]) > 0.5
-			except ZeroDivisionError :
-				majority = False
+				if record["ExAC_nontcga_ALL"] is not None :
+					if re.search('-?\d+\.?\d*',record["ExAC_nontcga_ALL"]) :
+						exac = float(record["ExAC_nontcga_ALL"])
+						af.append(exac)
+					else :
+						exac = None
+				else :
+					exac = None
+			except KeyError :
+				exac = None
+
+			#AF Kaviar
+			try :
+				if record["Kaviar_AF"] is not None :
+					if re.search('-?\d+\.?\d*',record["Kaviar_AF"]) :
+						kaviar = float(record["Kaviar_AF"])
+						af.append(kaviar)
+					else :
+						kaviar = None
+				else :
+					kaviar = None
+			except KeyError :
+				kaviar = None
+
+			#AF HRC
+			try :
+				if record["HRC_AF"] is not None :
+					if re.search('-?\d+\.?\d*',record["HRC_AF"]) :
+						hrc = float(record["HRC_AF"])
+						af.append(hrc)
+					else :
+						hrc = None
+				else :
+					hrc = None
+			except KeyError :
+				hrc = None
+
+			#AF avsnp
+			try :
+				if record["AF"] is not None :
+					if re.search('-?\d+\.?\d*',record["AF"]) :
+						af_avsnp = float(record["AF"])
+						af.append(af_avsnp)
+					else :
+						af_avsnp = None
+				else :
+					af_avsnp = None
+			except KeyError :
+				af_avsnp = None
+
+			try :
+				af_max = max(af)
+			except ValueError :
+				af_max = None
+
+			#prediction of functional effects of human nsSNPs
+			v = [".","."]
+			if metaRNN_found is True :
+				if record[metaRNN_key] == "D" :
+					majority = True
+				else :
+					majority = False
+			else :
+				v = vote(record)
+				try :
+					majority = float(v[0])/float(v[1]) > 0.5
+				except ZeroDivisionError :
+					majority = False
 
 			#DBSNP
-			if rs129 is not None or rs137 is not None :
-				if g1000 is None and esp6500 is None :
+			if rs129 is not None or rs138 is not None or rs is not None :
+				if af_max is None :
 					comment = comment + "SNP" + " | "
-				elif g1000 > 0.01 or esp6500 > 0.01 :
+				elif af_max > 0.01 :
 					comment = comment + "COMMON SNP" + " | "
-				elif g1000 <= 0.01 and esp6500 <= 0.01 :
+				elif af_max <= 0.01 :
 					comment = comment + "RARE SNP" + " | "
 
 			#COSMIC
@@ -417,7 +572,7 @@ if __name__ == "__main__" :
 
 			for field in fieldnames :
 				output.write("%s\t"%record[field])
-			output.write(comment+"\t"+str(v[0])+"\t"+str(v[1])+"\t"+effect+"\t"+str(freq_in_dataset)+"\t"+pubmed_snpedia)
+			output.write(comment+"\t"+str(v[0])+"\t"+str(v[1])+"\t"+effect+"\t"+str(freq_in_dataset))
 			output.write("\n")
 
 	output.close()
