@@ -60,6 +60,14 @@
     stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.{wildcards.chr}.stderr"
     mem : "16G"
 
+  LancetSomatic:
+    host : "1"
+    core : "24"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+    mem : "72G"
+
   pindelGerm:
     host : "1"
     core : "4"

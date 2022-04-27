@@ -8,6 +8,7 @@ import numpy
 from datetime import datetime
 import re
 import math
+import argparse
 
 def read_vcf(path):
     with open(path, 'r') as f:
@@ -259,6 +260,26 @@ def parse_Seuratindels(vcf):
 
 	return {'indels':indels}
 
+def parse_Lancetindels(vcf):
+	indels = {}
+	datacolumn = {}
+	for line in open(vcf, 'r'):
+		line=line.strip()
+		if not line.startswith("#"):
+			info=line.split("\t")
+			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
+			ad_sample_normal = info[9].split(":")[1]
+			ad_sample_tumor = info[10].split(":")[1]
+			qual = info[5]
+			filt = info[6]
+			indels[chrid] = {}
+			indels[chrid]['ad_normal']=ad_sample_normal
+			indels[chrid]['ad_tumor']=ad_sample_tumor			
+			indels[chrid]['qual']=qual
+			indels[chrid]['filter']=filt
+	
+	return {'indels':indels}
+
 def get_af(ad):
 
 	try :
@@ -271,23 +292,41 @@ def get_af(ad):
 		af = numpy.nan
 	return af
 
-def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, scalpel_indels, seurat_indels ,strelka_indels, vardict_indels, varscan2_indels, output):
-	SAMPLE = os.path.basename(sys.argv[1])
-	filter1=re.compile('(.*).[indel|INDEL].*')
-	SAMPLE=filter1.search(sys.argv[1]).group(1)
+def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, scalpel_indels, seurat_indels ,strelka_indels, vardict_indels, varscan2_indels, lancet_indels, output, n_concordant):
+	all_indels = list()
 	sf = open(output,"w")
 	sf.write("%s\n" %("##fileformat=VCFv4.2"))
 	sf.write("%s%s\n" %("##date=",str(datetime.now())))
 	sf.write("%s\n" %("##source=MergeCaller"))
-	sf.write("%s\n" %("##FILTER=<ID=FreeBayes,Description=\"Called by FreeBayes\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Lofreq,Description=\"Called by LoFreq\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Mutect2,Description=\"Called by Mutect2\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Pindel,Description=\"Called by Pindel\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Scalpel,Description=\"Called by Scalpel\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Seurat,Description=\"Called by Seurat\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Strelka,Description=\"Called by Strelka\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Vardict,Description=\"Called by VarDict\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Varscan2,Description=\"Called by Scalpel\">"))
+	if freebayes_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=FreeBayes,Description=\"Called by FreeBayes\">"))
+		all_indels = all_indels + list(freebayes_indels['indels'].keys())
+	if lancet_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Lancet,Description=\"Called by Lancet\">"))
+		all_indels = all_indels + list(lancet_indels['indels'].keys())
+	if lofreq_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Lofreq,Description=\"Called by LoFreq\">"))
+		all_indels = all_indels + list(lofreq_indels['indels'].keys())
+	if mutect2_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Mutect2,Description=\"Called by Mutect2\">"))
+		all_indels = all_indels + list(mutect2_indels['indels'].keys())
+	if pindel_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Pindel,Description=\"Called by Pindel\">"))
+		all_indels = all_indels + list(pindel_indels['indels'].keys())
+	if scalpel_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Scalpel,Description=\"Called by Scalpel\">"))
+		all_indels = all_indels + list(scalpel_indels['indels'].keys())
+	if seurat_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Seurat,Description=\"Called by Seurat\">"))
+		all_indels = all_indels + list(seurat_indels['indels'].keys())
+	if strelka_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Strelka,Description=\"Called by Strelka\">"))
+		all_indels = all_indels + list(strelka_indels['indels'].keys())
+	if vardict_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Vardict,Description=\"Called by VarDict\">"))
+		all_indels = all_indels + list(vardict_indels['indels'].keys())
+	if varscan2_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Varscan2,Description=\"Called by Varscan2\">"))
 	sf.write("%s\n" %("##INFO=<ID=VAF_NORMAL,Number=1,Type=Float,Description=\"Median vaf between callers in normal\">"))
 	sf.write("%s\n" %("##INFO=<ID=VAF_TUMOR,Number=1,Type=Float,Description=\"Median vaf between callers in tumor\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADP1,Number=R,Type=Integer,Description=\"Allelic depths reported by FreeBayes for the ref and alt alleles in the order listed\">"))
@@ -299,8 +338,9 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 	sf.write("%s\n" %("##FORMAT=<ID=ADSK,Number=R,Type=Integer,Description=\"Allelic depths reported by Strelka for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADVC,Number=R,Type=Integer,Description=\"Allelic depths reported by Vardict for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADVS2,Number=R,Type=Integer,Description=\"Allelic depths reported by Varscan2 for the ref and alt alleles in the order listed\">"))
+	sf.write("%s\n" %("##FORMAT=<ID=ADLA,Number=R,Type=Integer,Description=\"Allelic depths reported by Lancet for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('#CHROM', 'POS','ID', 'REF', 'ALT','QUAL', 'FILTER', 'INFO','FORMAT', "NORMAL", "TUMOR"))
-	all_indels = sorted(set( list(freebayes_indels['indels'].keys()) +  list(lofreq_indels['indels'].keys()) + list(mutect2_indels['indels'].keys()) + list(pindel_indels['indels'].keys()) + list(scalpel_indels['indels'].keys()) + list(seurat_indels['indels'].keys()) + list(strelka_indels['indels'].keys()) + list(vardict_indels['indels'].keys()) + list(varscan2_indels['indels'].keys()) ))
+	all_indels = sorted(set(all_indels))
 	for indels in all_indels :
 		vcfinfo = {}
 		if indels in freebayes_indels['indels'] :
@@ -321,6 +361,8 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 			vcfinfo['vardict']=indels
 		if indels in varscan2_indels['indels'] :
 			vcfinfo['varscan2']=indels
+		if indels in lancet_indels['indels'] :
+			vcfinfo['lancet']=indels
 		called_by = list(vcfinfo.keys())
 		if all(value == vcfinfo[called_by[0]] for value in vcfinfo.values()):
 			format=''
@@ -475,6 +517,15 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 					if float(varscan2_indels['indels'][indels]['qual']) > 20 and varscan2_indels['indels'][indels]['filter'] == "Somatic" :
 						nb_callers_pass += 1
 						callers=callers+'Varscan2|'
+				elif c=='lancet':
+					format=format+'ADLA:'
+					gf_normal=gf_normal+lancet_indels['indels'][indels]['ad_normal']+':'
+					af_normal.append(get_af(lancet_indels['indels'][indels]['ad_normal']))
+					gf_tumor=gf_tumor+lancet_indels['indels'][indels]['ad_tumor']+':'
+					af_tumor.append(get_af(lancet_indels['indels'][indels]['ad_tumor']))
+					if lancet_indels['indels'][indels]['filter'] == "PASS" :
+						nb_callers_pass += 1
+						callers=callers+'Lancet|'
 
 			if nb_callers_pass > 0 :
 				vaf_tumor = round(numpy.nanmedian(af_tumor),4)
@@ -484,7 +535,7 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 					filt = "LowVariantFreq|"+callers
 				else :
 					filt = callers
-				if nb_callers_pass >= 4 :
+				if nb_callers_pass >= n_concordant :
 					filt =  "CONCORDANT|"+filt
 				else :
 					filt = "DISCORDANT|"+filt
@@ -497,17 +548,89 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 				baseinfo=vcfinfolist[0]+'\t'+vcfinfolist[1]+'\t.\t'+vcfinfolist[2]+'\t'+vcfinfolist[3]
 				sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(baseinfo,qual, filt, info, format, gf_normal, gf_tumor))
 		else :
-			print("Conflict in ref and alt alleles between callers at pos "+snv)
+			print("Conflict in ref and alt alleles between callers at pos "+indels)
 
-freebayes_indels = parse_FreeBayesindels(sys.argv[1])
-lofreq_indels = parse_LoFreqindels(sys.argv[2])
-mutect2_indels = parse_Mutect2indels(sys.argv[3])
-pindel_indels = parse_Pindelindels(sys.argv[4])
-scalpel_indels = parse_Scalpelindels(sys.argv[5])
-seurat_indels = parse_Seuratindels(sys.argv[6])
-strelka_indels = parse_Strelkaindels(sys.argv[7])
-vardict_indels = parse_VarDictindels(sys.argv[8])
-varscan2_indels = parse_VarScan2indels(sys.argv[9])
-output = sys.argv[10]
+parser = argparse.ArgumentParser(description="Merge somatic indel vcf files from different variants callers")
+parser.add_argument('--FreeBayes', type=str, required=False)
+parser.add_argument('--Lancet', type=str, required=False)
+parser.add_argument('--LoFreq', type=str, required=False)
+parser.add_argument('--Mutect2', type=str, required=False)
+parser.add_argument('--pindel', type=str, required=False)
+parser.add_argument('--Scalpel', type=str, required=False)
+parser.add_argument('--Seurat', type=str, required=False)
+parser.add_argument('--Strelka', type=str, required=False)
+parser.add_argument('--VarDict', type=str, required=False)
+parser.add_argument('--VarScan2', type=str, required=False)
+parser.add_argument('-N',type=int, required=True, help="Number of vote to be concordant")
+parser.add_argument('output', type=str)
+args = parser.parse_args()
 
-mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, scalpel_indels, seurat_indels ,strelka_indels, vardict_indels, varscan2_indels, output)
+n_concordant = args.N
+n_vc = 0
+
+if args.FreeBayes is not None :
+	freebayes_indels = parse_FreeBayesindels(args.FreeBayes)
+	n_vc = n_vc + 1
+else :
+	freebayes_indels = None
+
+if args.Lancet is not None :
+	lancet_indels = parse_Lancetindels(args.Lancet)
+	n_vc = n_vc + 1
+else :
+	lancet_indels = None
+
+if args.LoFreq is not None :	
+	lofreq_indels = parse_LoFreqindels(args.LoFreq)
+	n_vc = n_vc + 1
+else :
+	lofreq_indels = None
+
+if args.Mutect2 is not None :
+	mutect2_indels = parse_Mutect2indels(args.Mutect2)
+	n_vc = n_vc + 1
+else :
+	mutect2_indels = None
+
+if args.pindel is not None :
+	pindel_indels = parse_Pindelindels(args.pindel)
+	n_vc = n_vc + 1
+else :
+	pindel_indels = None
+
+if args.Scalpel is not None :
+	scalpel_indels = parse_Scalpelindels(args.Scalpel)
+	n_vc = n_vc + 1
+else :
+	scalpel_indels = None
+
+if args.Seurat is not None :
+	seurat_indels = parse_Seuratindels(args.Seurat)
+	n_vc = n_vc + 1
+else :
+	seurat_indels = None
+
+if args.Strelka is not None :
+	strelka_indels = parse_Strelkaindels(args.Strelka)
+	n_vc = n_vc + 1
+else :
+	strelka_indels = None
+
+if args.VarDict is not None :
+	vardict_indels = parse_VarDictindels(args.VarDict)
+	n_vc = n_vc + 1
+else :
+	vardict_indels = None
+
+if args.VarScan2 is not None :
+	varscan2_indels = parse_VarScan2indels(args.VarScan2)
+	n_vc = n_vc + 1
+else :
+	varscan2_indels = None
+
+output = args.output
+
+if n_concordant > n_vc :
+	sys.exit("N concordant cannot be greater than the number of variant caller")
+
+mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, scalpel_indels, seurat_indels ,strelka_indels, vardict_indels, varscan2_indels, lancet_indels, output, n_concordant)

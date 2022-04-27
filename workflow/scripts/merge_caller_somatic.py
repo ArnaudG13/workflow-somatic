@@ -8,6 +8,7 @@ import numpy
 from datetime import datetime
 import re
 import math
+import argparse
 
 def read_vcf(path):
     with open(path, 'r') as f:
@@ -270,6 +271,66 @@ def parse_SeuratSNV(vcf):
 
 	return {'snvs':snvs}
 
+def parse_LancetSNV(vcf):
+	snvs = {}
+	datacolumn = {}
+	for line in open(vcf, 'r'):
+		line=line.strip()
+		if not line.startswith("#"):
+			info=line.split("\t")
+			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
+			ad_sample_normal = info[9].split(":")[1]
+			ad_sample_tumor = info[10].split(":")[1]
+			qual = info[5]
+			filt = info[6]
+			snvs[chrid] = {}
+			snvs[chrid]['ad_normal']=ad_sample_normal
+			snvs[chrid]['ad_tumor']=ad_sample_tumor			
+			snvs[chrid]['qual']=qual
+			snvs[chrid]['filter']=filt
+	
+	return {'snvs':snvs}
+
+def parse_ShimmerSNV(vcf):
+	snvs = {}
+	datacolumn = {}
+	for line in open(vcf, 'r'):
+		line=line.strip()
+		if not line.startswith("#"):
+			info=line.split("\t")
+			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
+			ad_sample_normal ="."
+			ad_sample_tumor = "."
+			qual = info[5]
+			filt = info[6]
+			snvs[chrid] = {}
+			snvs[chrid]['ad_normal']=ad_sample_normal
+			snvs[chrid]['ad_tumor']=ad_sample_tumor			
+			snvs[chrid]['qual']=qual
+			snvs[chrid]['filter']=filt
+
+	return {'snvs':snvs}
+
+def parse_VirmidSNV(vcf):
+	snvs = {}
+	datacolumn = {}
+	for line in open(vcf, 'r'):
+		line=line.strip()
+		if not line.startswith("#"):
+			info=line.split("\t")
+			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
+			ad_sample_normal ="."
+			ad_sample_tumor = "."
+			qual = info[5]
+			filt = info[6]
+			snvs[chrid] = {}
+			snvs[chrid]['ad_normal']=ad_sample_normal
+			snvs[chrid]['ad_tumor']=ad_sample_tumor			
+			snvs[chrid]['qual']=qual
+			snvs[chrid]['filter']=filt
+
+	return {'snvs':snvs}
+
 def get_af(ad):
 	try :
 		ref_count = float(ad.split(",")[0])
@@ -281,38 +342,70 @@ def get_af(ad):
 		af = numpy.nan
 	return af
 
-def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seurat_snv, sniper_snv, strelka_snv, vardict_snv, varscan2_snv, output):
-	SAMPLE = os.path.basename(sys.argv[1])
-	filter1=re.compile('(.*).[snp|SNP|snv].*')
-	SAMPLE=filter1.search(sys.argv[1]).group(1)
+def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seurat_snv, sniper_snv, strelka_snv, vardict_snv, varscan2_snv, lancet_snv, shimmer_snv, virmid_snv, output, n_concordant):
+	all_snvs = list()
 	sf = open(output,"w")
 	sf.write("%s\n" %("##fileformat=VCFv4.2"))
 	sf.write("%s%s\n" %("##date=",str(datetime.now())))
 	sf.write("%s\n" %("##source=MergeCaller"))
-	sf.write("%s\n" %("##FILTER=<ID=FreeBayes,Description=\"Called by FreeBayes\">"))
-	sf.write("%s\n" %("##FILTER=<ID=LoFreq,Description=\"Called by LoFreq\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Muse,Description=\"Called by Muse\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Mutect,Description=\"Called by Mutect\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Mutect2,Description=\"Called by Mutect2\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Seurat,Description=\"Called by Seurat\">"))
-	sf.write("%s\n" %("##FILTER=<ID=SomaticSniper,Description=\"Called by SomaticSniper\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Strelka,Description=\"Called by Strelka\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Vardict,Description=\"Called by Vardict\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Varscan2,Description=\"Called by Varscan2\">"))
+	if freebayes_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=FreeBayes,Description=\"Called by FreeBayes\">"))
+		all_snvs = all_snvs + list(freebayes_snv['snvs'].keys()) 
+	if lofreq_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=LoFreq,Description=\"Called by LoFreq\">"))
+		all_snvs = all_snvs + list(lofreq_snv['snvs'].keys())
+	if muse_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Muse,Description=\"Called by Muse\">"))
+		all_snvs = all_snvs + list(muse_snv['snvs'].keys())
+	if mutect_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Mutect,Description=\"Called by Mutect\">"))
+		all_snvs = all_snvs + list(mutect_snv['snvs'].keys())
+	if mutect2_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Mutect2,Description=\"Called by Mutect2\">"))
+		all_snvs = all_snvs + list(mutect2_snv['snvs'].keys())
+	if seurat_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Seurat,Description=\"Called by Seurat\">"))
+		all_snvs = all_snvs + list(seurat_snv['snvs'].keys())
+	if sniper_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=SomaticSniper,Description=\"Called by SomaticSniper\">"))
+		all_snvs = all_snvs + list(sniper_snv['snvs'].keys())
+	if strelka_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Strelka,Description=\"Called by Strelka\">"))
+		all_snvs = all_snvs + list(strelka_snv['snvs'].keys())
+	if vardict_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Vardict,Description=\"Called by Vardict\">"))
+		all_snvs = all_snvs + list(vardict_snv['snvs'].keys())
+	if varscan2_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Varscan2,Description=\"Called by Varscan2\">"))
+		all_snvs = all_snvs + list(varscan2_snv['snvs'].keys())
+	if lancet_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Lancet,Description=\"Called by Lancet\">"))
+		all_snvs = all_snvs + list(lancet_snv['snvs'].keys())
+	if shimmer_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Shimmer,Description=\"Called by Shimmer\">"))
+		all_snvs = all_snvs + list(shimmer_snv['snvs'].keys())
+	if virmid_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Virmid,Description=\"Called by Virmid\">"))
+		all_snvs = all_snvs + list(virmid_snv['snvs'].keys())
 	sf.write("%s\n" %("##INFO=<ID=VAF_NORMAL,Number=1,Type=Float,Description=\"Median vaf between callers in normal\">"))
 	sf.write("%s\n" %("##INFO=<ID=VAF_TUMOR,Number=1,Type=Float,Description=\"Median vaf between callers in tumor\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADP1,Number=R,Type=Integer,Description=\"Allelic depths reported by FreeBayes for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADLF,Number=R,Type=Integer,Description=\"Allelic depths reported by LoFreq for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADMU,Number=R,Type=Integer,Description=\"Allelic depths reported by Muse for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADM,Number=R,Type=Integer,Description=\"Allelic depths reported by Mutect for the ref and alt alleles in the order listed\">"))
+	sf.write("%s\n" %("##FORMAT=<ID=ADMC,Number=R,Type=Integer,Description=\"Allelic depths reported by Mutect for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADM2,Number=R,Type=Integer,Description=\"Allelic depths reported by Mutect2 for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADSE,Number=R,Type=Integer,Description=\"Allelic depths reported by Seurat for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADSN,Number=R,Type=Integer,Description=\"Allelic depths reported by SomaticSniper for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADSK,Number=R,Type=Integer,Description=\"Allelic depths reported by Strelka for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADVC,Number=R,Type=Integer,Description=\"Allelic depths reported by Vardict for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADVS2,Number=R,Type=Integer,Description=\"Allelic depths reported by Varscan2 for the ref and alt alleles in the order listed\">"))
+	sf.write("%s\n" %("##FORMAT=<ID=ADLA,Number=R,Type=Integer,Description=\"Allelic depths reported by Lancet for the ref and alt alleles in the order listed\">"))
+	sf.write("%s\n" %("##FORMAT=<ID=ADSH,Number=R,Type=Integer,Description=\"Allelic depths reported by Shimmer for the ref and alt alleles in the order listed\">"))
+	sf.write("%s\n" %("##FORMAT=<ID=ADVI,Number=R,Type=Integer,Description=\"Allelic depths reported by Virmid for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('#CHROM', 'POS','ID', 'REF', 'ALT','QUAL', 'FILTER', 'INFO','FORMAT', "NORMAL", "TUMOR"))
-	all_snvs = sorted(set( list(freebayes_snv['snvs'].keys()) +  list(lofreq_snv['snvs'].keys()) + list(muse_snv['snvs'].keys()) + list(mutect_snv['snvs'].keys()) + list(mutect2_snv['snvs'].keys()) + list(seurat_snv['snvs'].keys()) + list(sniper_snv['snvs'].keys()) + list(strelka_snv['snvs'].keys()) + list(vardict_snv['snvs'].keys()) + list(varscan2_snv['snvs'].keys()) ))
+
+	all_snvs = sorted(set(all_snvs))
+	
 	for snv in all_snvs :
 		vcfinfo = {}
 		if snv in freebayes_snv['snvs'] :
@@ -335,6 +428,12 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 			vcfinfo['vardict']=snv
 		if snv in varscan2_snv['snvs'] :
 			vcfinfo['varscan2']=snv
+		if snv in lancet_snv['snvs'] :
+			vcfinfo['lancet']=snv
+		if snv in shimmer_snv['snvs'] :
+			vcfinfo['shimmer']=snv
+		if snv in virmid_snv['snvs'] :
+			vcfinfo['virmid']=snv
 		called_by = list(vcfinfo.keys())
 		if all(value == vcfinfo[called_by[0]] for value in vcfinfo.values()):
 			format=''
@@ -390,7 +489,7 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 						nb_callers_pass += 1
 						callers=callers+'Muse|'
 				elif c=="mutect":
-					format=format+'ADMU:'
+					format=format+'ADMC:'
 					gf_normal=gf_normal+mutect_snv['snvs'][snv]['ad_normal']+':'
 					af_normal.append(get_af(mutect_snv['snvs'][snv]['ad_normal']))
 					gf_tumor=gf_tumor+mutect_snv['snvs'][snv]['ad_tumor']+':'
@@ -511,6 +610,31 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 					if float(varscan2_snv['snvs'][snv]['qual']) > 20 and varscan2_snv['snvs'][snv]['filter'] == "Somatic" :
 						nb_callers_pass += 1
 						callers=callers+'Varscan2|'
+				elif c=='lancet':
+					format=format+'ADLA:'
+					gf_normal=gf_normal+lancet_snv['snvs'][snv]['ad_normal']+':'
+					af_normal.append(get_af(lancet_snv['snvs'][snv]['ad_normal']))
+					gf_tumor=gf_tumor+lancet_snv['snvs'][snv]['ad_tumor']+':'
+					af_tumor.append(get_af(lancet_snv['snvs'][snv]['ad_tumor']))
+					if lancet_snv['snvs'][snv]['filter'] == "PASS" :
+						nb_callers_pass += 1
+						callers=callers+'Lancet|'
+				elif c=='shimmer':
+					format=format+'ADSH:'
+					gf_normal=gf_normal+shimmer_snv['snvs'][snv]['ad_normal']+':'
+					af_normal.append(get_af(shimmer_snv['snvs'][snv]['ad_normal']))
+					gf_tumor=gf_tumor+shimmer_snv['snvs'][snv]['ad_tumor']+':'
+					af_tumor.append(get_af(shimmer_snv['snvs'][snv]['ad_tumor']))
+					nb_callers_pass += 1
+					callers=callers+'Shimmer|'
+				elif c=='virmid':
+					format=format+'ADVI:'
+					gf_normal=gf_normal+virmid_snv['snvs'][snv]['ad_normal']+':'
+					af_normal.append(get_af(virmid_snv['snvs'][snv]['ad_normal']))
+					gf_tumor=gf_tumor+virmid_snv['snvs'][snv]['ad_tumor']+':'
+					af_tumor.append(get_af(virmid_snv['snvs'][snv]['ad_tumor']))
+					nb_callers_pass += 1
+					callers=callers+'Virmid|'
 
 			if nb_callers_pass > 0 : 
 				vaf_tumor = round(numpy.nanmedian(af_tumor),4)
@@ -520,7 +644,7 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 					filt = "LowVariantFreq|"+callers
 				else :
 					filt = callers
-				if nb_callers_pass > 4 :
+				if nb_callers_pass > n_concordant :
 					filt =  "CONCORDANT|"+filt
 				else :
 					filt = "DISCORDANT|"+filt
@@ -535,16 +659,109 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 		else :
 			print("Conflict in ref and alt alleles between callers at pos "+snv)
 
-freebayes_snv = parse_FreeBayesSNV(sys.argv[1])
-lofreq_snv = parse_LoFreqSNV(sys.argv[2])
-muse_snv = parse_MuseSNV(sys.argv[3])
-mutect_snv = parse_MutectSNV(sys.argv[4])
-mutect2_snv = parse_Mutect2SNV(sys.argv[5])
-seurat_snv = parse_SeuratSNV(sys.argv[6])
-sniper_snv = parse_SomaticSniperSNV(sys.argv[7])
-strelka_snv = parse_StrelkaSNV(sys.argv[8])
-vardict_snv = parse_VarDictSNV(sys.argv[9])
-varscan2_snv = parse_VarScan2SNV(sys.argv[10])
-output = sys.argv[11]
 
-mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seurat_snv, sniper_snv, strelka_snv, vardict_snv, varscan2_snv, output)
+parser = argparse.ArgumentParser(description="Merge somatic snv vcf files from different variants callers")
+parser.add_argument('--FreeBayes', type=str, required=False)
+parser.add_argument('--Lancet', type=str, required=False)
+parser.add_argument('--LoFreq', type=str, required=False)
+parser.add_argument('--Muse', type=str, required=False)
+parser.add_argument('--Mutect', type=str, required=False)
+parser.add_argument('--Mutect2', type=str, required=False)
+parser.add_argument('--Seurat', type=str, required=False)
+parser.add_argument('--Shimmer', type=str, required=False)
+parser.add_argument('--SomaticSniper', type=str, required=False)
+parser.add_argument('--Strelka', type=str, required=False)
+parser.add_argument('--VarDict', type=str, required=False)
+parser.add_argument('--VarScan2', type=str, required=False)
+parser.add_argument('--Virmid', type=str, required=False)
+parser.add_argument('-N',type=int, required=True, help="Number of vote to be concordant")
+parser.add_argument('output', type=str)
+args = parser.parse_args()
+
+n_concordant = args.N
+n_vc = 0
+
+if args.FreeBayes is not None :
+	freebayes_snv = parse_FreeBayesSNV(args.FreeBayes)
+	n_vc = n_vc + 1
+else :
+	freebayes_snv = None
+
+if args.Lancet is not None :
+	lancet_snv = parse_LancetSNV(args.Lancet)
+	n_vc = n_vc + 1
+else :
+	lancet_snv = None
+
+if args.LoFreq is not None :	
+	lofreq_snv = parse_LoFreqSNV(args.LoFreq)
+	n_vc = n_vc + 1
+else :
+	lofreq_snv = None
+
+if args.Muse is not None :
+	muse_snv = parse_MuseSNV(args.Muse)
+	n_vc = n_vc + 1
+else :
+	muse_snv = None
+
+if args.Mutect is not None :
+	mutect_snv = parse_MutectSNV(args.Mutect)
+	n_vc = n_vc + 1
+else :
+	mutect_snv = None
+
+if args.Mutect2 is not None :
+	mutect2_snv = parse_Mutect2SNV(args.Mutect2)
+	n_vc = n_vc + 1
+else :
+	mutect2_snv = None
+
+if args.Seurat is not None :
+	seurat_snv = parse_SeuratSNV(args.Seurat)
+	n_vc = n_vc + 1
+else :
+	seurat_snv = None
+
+if args.Shimmer is not None :	
+	shimmer_snv = parse_ShimmerSNV(args.Shimmer)
+	n_vc = n_vc + 1
+else :
+	shimmer_snv = None
+
+if args.SomaticSniper is not None :
+	sniper_snv = parse_SomaticSniperSNV(args.SomaticSniper)
+	n_vc = n_vc + 1
+else :
+	sniper_snv = None
+
+if args.Strelka is not None :
+	strelka_snv = parse_StrelkaSNV(args.Strelka)
+	n_vc = n_vc + 1
+else :
+	strelka_snv = None
+
+if args.VarDict is not None :
+	vardict_snv = parse_VarDictSNV(args.VarDict)
+	n_vc = n_vc + 1
+else :
+	vardict_snv = None
+
+if args.VarScan2 is not None :
+	varscan2_snv = parse_VarScan2SNV(args.VarScan2)
+	n_vc = n_vc + 1
+else :
+	varscan2_snv = None
+
+if args.Virmid is not None :
+	virmid_snv = parse_VirmidSNV(args.Virmid)
+	n_vc = n_vc + 1
+else :
+	virmid_snv = None
+
+output = args.output
+
+if n_concordant > n_vc :
+	sys.exit("N concordant cannot be greater than the number of variant caller")
+
+mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seurat_snv, sniper_snv, strelka_snv, vardict_snv, varscan2_snv, lancet_snv, shimmer_snv, virmid_snv, output, n_concordant)
