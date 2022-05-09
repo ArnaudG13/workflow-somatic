@@ -9,6 +9,7 @@ import numpy
 from datetime import datetime
 import re
 import math
+import argparse
 
 def read_vcf(path):
     with open(path, 'r') as f:
@@ -232,51 +233,73 @@ def get_af(ad):
 		af = numpy.nan
 	return af
 
-def mergeSNV(freebayes_snv, hc_snv, lofreq_snv, mutect2_snv, pisces_snv, platypus_snv, vardict_snv, varscan2_snv, output):
-	SAMPLE = os.path.basename(sys.argv[1])
-	filter1=re.compile('(.*).SNP.*')
-	SAMPLE=filter1.search(sys.argv[1]).group(1)
+def mergeSNV(freebayes_snv, hc_snv, lofreq_snv, mutect2_snv, pisces_snv, platypus_snv, vardict_snv, varscan2_snv, output, n_concordant):
+	all_snvs = list()
 	sf = open(output,"w")
 	sf.write("%s\n" %("##fileformat=VCFv4.2"))
 	sf.write("%s%s\n" %("##date=",str(datetime.now())))
 	sf.write("%s\n" %("##source=MergeCaller"))
-	sf.write("%s\n" %("##FILTER=<ID=FreeBayes,Description=\"Called by FreeBayes\">"))
-	sf.write("%s\n" %("##FILTER=<ID=HC,Description=\"Called by HaplotypeCaller\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Lofreq,Description=\"Called by LoFreq\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Mutect2,Description=\"Called by Mutect2\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Pisces,Description=\"Called by Pisces\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Platypus,Description=\"Called by Platypus\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Vardict,Description=\"Called by Vardict\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Varscan2,Description=\"Called by Varscan2\">"))
-	sf.write("%s\n" %("##INFO=<ID=VAF,Number=1,Type=Float,Description=\"Median vaf between callers\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADP1,Number=R,Type=Integer,Description=\"Allelic depths reported by FreeBayes for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADHC,Number=R,Type=Integer,Description=\"Allelic depths reported by HaplotypeCaller for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADLF,Number=R,Type=Integer,Description=\"Allelic depths reported by LoFreq for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADM2,Number=R,Type=Integer,Description=\"Allelic depths reported by Mutect2 for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADPS,Number=R,Type=Integer,Description=\"Allelic depths reported by Pisces for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADPY,Number=R,Type=Integer,Description=\"Allelic depths reported by Platypus for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADVC,Number=R,Type=Integer,Description=\"Allelic depths reported by Vardict for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADVS2,Number=R,Type=Integer,Description=\"Allelic depths reported by Varscan2 for the ref and alt alleles in the order listed\">"))
+	if freebayes_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=FreeBayes,Description=\"Called by FreeBayes\""))
+		all_snvs = all_snvs + list(freebayes_snv['snvs'].keys())
+	if hc_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=HC,Description=\"Called by HaplotypeCaller\""))
+		all_snvs = all_snvs + list(hc_snv['snvs'].keys())
+	if lofreq_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Lofreq,Description=\"Called by LoFreq\""))
+		all_snvs = all_snvs + list(lofreq_snv['snvs'].keys())
+	if mutect2_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Mutect2,Description=\"Called by Mutect2\""))
+		all_snvs = all_snvs + list(mutect2_snv['snvs'].keys())
+	if pisces_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Pisces,Description=\"Called by Pisces\""))
+		all_snvs = all_snvs + list(pisces_snv['snvs'].keys())
+	if platypus_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Platypus,Description=\"Called by Platypus\""))
+		all_snvs = all_snvs + list(platypus_snv['snvs'].keys())
+	if vardict_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Vardict,Description=\"Called by Vardict\""))
+		all_snvs = all_snvs + list(vardict_snv['snvs'].keys())
+	if varscan2_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Varscan2,Description=\"Called by Varscan2\""))
+		all_snvs = all_snvs + list(varscan2_snv['snvs'].keys())
+	sf.write("%s\n" %("##INFO=<ID=VAF,Number=1,Type=Float,Description=\"Median vaf between callers\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADP1,Number=R,Type=Integer,Description=\"Allelic depths reported by FreeBayes for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADHC,Number=R,Type=Integer,Description=\"Allelic depths reported by HaplotypeCaller for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADLF,Number=R,Type=Integer,Description=\"Allelic depths reported by LoFreq for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADM2,Number=R,Type=Integer,Description=\"Allelic depths reported by Mutect2 for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADPS,Number=R,Type=Integer,Description=\"Allelic depths reported by Pisces for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADPY,Number=R,Type=Integer,Description=\"Allelic depths reported by Platypus for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADVC,Number=R,Type=Integer,Description=\"Allelic depths reported by Vardict for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADVS2,Number=R,Type=Integer,Description=\"Allelic depths reported by Varscan2 for the ref and alt alleles in the order listed\""))
 	sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('#CHROM', 'POS','ID', 'REF', 'ALT','QUAL', 'FILTER', 'INFO','FORMAT', "SAMPLE"))
-	all_snvs = sorted(set( list(freebayes_snv['snvs'].keys()) + list(hc_snv['snvs'].keys()) +  list(lofreq_snv['snvs'].keys()) + list(mutect2_snv['snvs'].keys()) + list(pisces_snv['snvs'].keys()) + list(platypus_snv['snvs'].keys()) + list(vardict_snv['snvs'].keys()) + list(varscan2_snv['snvs'].keys()) ))
+	all_snvs = sorted(set(all_snvs))
 	for snv in all_snvs :
 		vcfinfo = {}
-		if snv in freebayes_snv['snvs'] :
-			vcfinfo['freebayes']=snv
-		if snv in hc_snv['snvs'] :
-			vcfinfo['HC']=snv
-		if snv in lofreq_snv['snvs'] :
-			vcfinfo['lofreq']=snv
-		if snv in mutect2_snv['snvs'] :
-			vcfinfo['mutect2']=snv
-		if snv in pisces_snv['snvs'] :
-			vcfinfo['pisces']=snv
-		if snv in platypus_snv['snvs'] :
-			vcfinfo['platypus']=snv
-		if snv in vardict_snv['snvs'] :
-			vcfinfo['vardict']=snv
-		if snv in varscan2_snv['snvs'] :
-			vcfinfo['varscan2']=snv
+		if freebayes_snv is not None :
+			if snv in freebayes_snv['snvs'] :
+				vcfinfo['freebayes']=snv
+		if hc_snv is not None :
+			if snv in hc_snv['snvs'] :
+				vcfinfo['HC']=snv
+		if lofreq_snv is not None :
+			if snv in lofreq_snv['snvs'] :
+				vcfinfo['lofreq']=snv
+		if mutect2_snv is not None :
+			if snv in mutect2_snv['snvs'] :
+				vcfinfo['mutect2']=snv
+		if pisces_snv is not None :
+			if snv in pisces_snv['snvs'] :
+				vcfinfo['pisces']=snv
+		if platypus_snv is not None :
+			if snv in platypus_snv['snvs'] :
+				vcfinfo['platypus']=snv
+		if vardict_snv is not None :
+			if snv in vardict_snv['snvs'] :
+				vcfinfo['vardict']=snv
+		if varscan2_snv is not None :
+			if snv in varscan2_snv['snvs'] :
+				vcfinfo['varscan2']=snv
 		called_by = list(vcfinfo.keys())
 		if all(value == vcfinfo[called_by[0]] for value in vcfinfo.values()):
 			format=''
@@ -435,7 +458,7 @@ def mergeSNV(freebayes_snv, hc_snv, lofreq_snv, mutect2_snv, pisces_snv, platypu
 					filt = "LowVariantFreq|"+callers
 				else :
 					filt = callers
-				if nb_callers_pass > 4 :
+				if nb_callers_pass > n_concordant :
 					filt =  "CONCORDANT|"+filt
 				else :
 					filt = "DISCORDANT|"+filt
@@ -450,14 +473,73 @@ def mergeSNV(freebayes_snv, hc_snv, lofreq_snv, mutect2_snv, pisces_snv, platypu
 		else :
 			print("Conflict in ref and alt alleles between callers at pos "+indel)
 
-freebayes_snv = parse_FreeBayesSNV(sys.argv[1])
-hc_snv = parse_HaplotypeCallerSNV(sys.argv[2])
-lofreq_snv = parse_LoFreqSNV(sys.argv[3])
-mutect2_snv = parse_Mutect2SNV(sys.argv[4])
-pisces_snv = parse_PiscesSNV(sys.argv[5])
-platypus_snv = parse_PlatypusSNV(sys.argv[6])
-vardict_snv = parse_VarDictSNV(sys.argv[7])
-varscan2_snv = parse_VarScan2SNV(sys.argv[8])
-output = sys.argv[9]
+parser = argparse.ArgumentParser(description="Merge snv vcf files from different variants callers")
+parser.add_argument('--FreeBayes', type=str, required=False)
+parser.add_argument('--HaplotypeCaller', type=str, required=False)
+parser.add_argument('--LoFreq', type=str, required=False)
+parser.add_argument('--Mutect2', type=str, required=False)
+parser.add_argument('--Pisces', type=str, required=False)
+parser.add_argument('--Platypus', type=str, required=False)
+parser.add_argument('--VarDict', type=str, required=False)
+parser.add_argument('--VarScan2', type=str, required=False)
+parser.add_argument('-N',type=int, required=True, help="Number of vote to be concordant")
+parser.add_argument('output', type=str)
+args = parser.parse_args()
 
-mergeSNV(freebayes_snv, hc_snv, lofreq_snv, mutect2_snv, pisces_snv, platypus_snv, vardict_snv, varscan2_snv, output)
+n_concordant = args.N
+n_vc = 0
+
+if args.FreeBayes is not None :
+	freebayes_snv = parse_FreeBayesSNV(args.FreeBayes)
+	n_vc = n_vc + 1
+else :
+	freebayes_snv = None
+
+if args.HaplotypeCaller is not None :
+	hc_snv = parse_HaplotypeCallerSNV(args.HaplotypeCaller)
+	n_vc = n_vc + 1
+else :
+	HC_snv = None
+
+if args.LoFreq is not None :
+	lofreq_snv = parse_LoFreqSNV(args.LoFreq)
+	n_vc = n_vc + 1
+else :
+	lofreq_snv = None
+
+if args.Mutect2 is not None :
+	mutect2_snv = parse_Mutect2SNV(args.Mutect2)
+	n_vc = n_vc + 1
+else :
+	mutect2_snv = None
+
+if args.Pisces is not None :
+	pisces_snv = parse_PiscesSNV(args.Pisces)
+	n_vc = n_vc + 1
+else :
+	pisces_snv = None
+
+if args.Platypus is not None :
+	platypus_snv = parse_PlatypusSNV(args.Platypus)
+	n_vc = n_vc + 1
+else :
+	platypus_snv = None
+
+if args.VarDict is not None :
+	vardict_snv = parse_VarDictSNV(args.VarDict)
+	n_vc = n_vc + 1
+else :
+	vardict_snv = None
+
+if args.VarScan2 is not None :
+	varscan2_snv = parse_VarScan2SNV(args.VarScan2)
+	n_vc = n_vc + 1
+else :
+	varscan2_snv = None
+
+output = args.output
+
+if n_concordant > n_vc :
+	sys.exit("N concordant cannot be greater than the number of variant caller")
+
+mergeSNV(freebayes_snv, hc_snv, lofreq_snv, mutect2_snv, pisces_snv, platypus_snv, vardict_snv, varscan2_snv, output, n_concordant)

@@ -408,32 +408,45 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 	
 	for snv in all_snvs :
 		vcfinfo = {}
-		if snv in freebayes_snv['snvs'] :
-			vcfinfo['freebayes']=snv
-		if snv in lofreq_snv['snvs'] :
-			vcfinfo['lofreq']=snv
-		if snv in muse_snv['snvs']:
-			vcfinfo['muse']=snv
-		if snv in mutect_snv['snvs'] :
-			vcfinfo['mutect']=snv
-		if snv in mutect2_snv['snvs'] :
-			vcfinfo['mutect2']=snv
-		if snv in seurat_snv['snvs'] :
-			vcfinfo['seurat']=snv
-		if snv in sniper_snv['snvs'] :
-			vcfinfo['sniper']=snv
-		if snv in strelka_snv['snvs'] :
-			vcfinfo['strelka']=snv
-		if snv in vardict_snv['snvs'] :
-			vcfinfo['vardict']=snv
-		if snv in varscan2_snv['snvs'] :
-			vcfinfo['varscan2']=snv
-		if snv in lancet_snv['snvs'] :
-			vcfinfo['lancet']=snv
-		if snv in shimmer_snv['snvs'] :
-			vcfinfo['shimmer']=snv
-		if snv in virmid_snv['snvs'] :
-			vcfinfo['virmid']=snv
+		if freebayes_snv is not None :
+			if snv in freebayes_snv['snvs'] :
+				vcfinfo['freebayes']=snv
+		if lofreq_snv is not None :
+			if snv in lofreq_snv['snvs'] :
+				vcfinfo['lofreq']=snv
+		if muse_snv is not None :
+			if snv in muse_snv['snvs']:
+				vcfinfo['muse']=snv
+		if mutect_snv is not None :
+			if snv in mutect_snv['snvs'] :
+				vcfinfo['mutect']=snv
+		if mutect2_snv is not None :
+			if snv in mutect2_snv['snvs'] :
+				vcfinfo['mutect2']=snv
+		if seurat_snv is not None :
+			if snv in seurat_snv['snvs'] :
+				vcfinfo['seurat']=snv
+		if sniper_snv is not None :
+			if snv in sniper_snv['snvs'] :
+				vcfinfo['sniper']=snv
+		if strelka_snv is not None :
+			if snv in strelka_snv['snvs'] :
+				vcfinfo['strelka']=snv
+		if vardict_snv is not None :
+			if snv in vardict_snv['snvs'] :
+				vcfinfo['vardict']=snv
+		if varscan2_snv is not None :
+			if snv in varscan2_snv['snvs'] :
+				vcfinfo['varscan2']=snv
+		if lancet_snv is not None :
+			if snv in lancet_snv['snvs'] :
+				vcfinfo['lancet']=snv
+		if shimmer_snv is not None :
+			if snv in shimmer_snv['snvs'] :
+				vcfinfo['shimmer']=snv
+		if virmid_snv is not None :
+			if snv in virmid_snv['snvs'] :
+				vcfinfo['virmid']=snv
 		called_by = list(vcfinfo.keys())
 		if all(value == vcfinfo[called_by[0]] for value in vcfinfo.values()):
 			format=''

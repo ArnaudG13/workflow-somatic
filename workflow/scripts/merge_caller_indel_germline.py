@@ -9,6 +9,7 @@ import numpy
 from datetime import datetime
 import re
 import math
+import argparse
 
 def read_vcf(path):
     with open(path, 'r') as f:
@@ -193,22 +194,36 @@ def get_af(ad):
 		af = numpy.nan
 	return af
 
-def mergeindels(freebayes_indels, hc_indels, pindel_indels, pisces_indels, platypus_indels, scalpel_indels, strelka_indels, varscan2_indels, output):
-	SAMPLE = os.path.basename(sys.argv[1])
-	filter1=re.compile('(.*).INDEL.*')
-	SAMPLE=filter1.search(sys.argv[1]).group(1)
+def mergeindels(freebayes_indels, hc_indels, pindel_indels, pisces_indels, platypus_indels, scalpel_indels, strelka_indels, varscan2_indels, output, n_concordant):
+	all_indels = list()
 	sf = open(output,"w")
 	sf.write("%s\n" %("##fileformat=VCFv4.2"))
 	sf.write("%s%s\n" %("##date=",str(datetime.now())))
 	sf.write("%s\n" %("##source=MergeCaller"))
-	sf.write("%s\n" %("##FILTER=<ID=FreeBayes,Description=\"Called by FreeBayes\""))
-	sf.write("%s\n" %("##FILTER=<ID=HC,Description=\"Called by HaplotypeCaller\""))
-	sf.write("%s\n" %("##FILTER=<ID=Pindel,Description=\"Called by Pindel\""))
-	sf.write("%s\n" %("##FILTER=<ID=Pisces,Description=\"Called by Pisces\""))
-	sf.write("%s\n" %("##FILTER=<ID=Platypus,Description=\"Called by Platypus\""))
-	sf.write("%s\n" %("##FILTER=<ID=Strelka,Description=\"Called by Strelka\""))
-	sf.write("%s\n" %("##FILTER=<ID=Scalpel,Description=\"Called by Scalpel\""))
-	sf.write("%s\n" %("##FILTER=<ID=VarScan2,Description=\"Called by VarScan2\""))
+	if freebayes_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=FreeBayes,Description=\"Called by FreeBayes\""))
+		all_indels = all_indels + list(freebayes_indels['indels'].keys())
+	if hc_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=HC,Description=\"Called by HaplotypeCaller\""))
+		all_indels = all_indels + list(hc_indels['indels'].keys())
+	if pindel_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Pindel,Description=\"Called by Pindel\""))
+		all_indels = all_indels + list(pindel_indels['indels'].keys())
+	if pisces_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Pisces,Description=\"Called by Pisces\""))
+		all_indels = all_indels + list(pisces_indels['indels'].keys())
+	if platypus_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Platypus,Description=\"Called by Platypus\""))
+		all_indels = all_indels + list(platypus_indels['indels'].keys())
+	if strelka_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Strelka,Description=\"Called by Strelka\""))
+		all_indels = all_indels + list(strelka_indels['indels'].keys())
+	if scalpel_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Scalpel,Description=\"Called by Scalpel\""))
+		all_indels = all_indels + list(scalpel_indels['indels'].keys())
+	if varscan2_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=VarScan2,Description=\"Called by VarScan2\""))
+		all_indels = all_indels + list(varscan2_indels['indels'].keys())
 	sf.write("%s\n" %("##INFO=<ID=VAF,Number=1,Type=Float,Description=\"Median vaf between callers\""))
 	sf.write("%s\n" %("##FORMAT=<ID=ADP1,Number=R,Type=Integer,Description=\"Allelic depths reported by FreeBayes for the ref and alt alleles in the order listed\""))
 	sf.write("%s\n" %("##FORMAT=<ID=ADHC,Number=R,Type=Integer,Description=\"Allelic depths reported by HaplotypeCaller for the ref and alt alleles in the order listed\""))
@@ -219,25 +234,33 @@ def mergeindels(freebayes_indels, hc_indels, pindel_indels, pisces_indels, platy
 	sf.write("%s\n" %("##FORMAT=<ID=ADSK,Number=R,Type=Integer,Description=\"Allelic depths reported by Strelka for the ref and alt alleles in the order listed\""))
 	sf.write("%s\n" %("##FORMAT=<ID=ADVS2,Number=R,Type=Integer,Description=\"Allelic depths reported by Varscan2 for the ref and alt alleles in the order listed\""))
 	sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('#CHROM', 'POS','ID', 'REF', 'ALT','QUAL', 'FILTER', 'INFO','FORMAT', "SAMPLE"))
-	all_indels = sorted(set( list(freebayes_indels['indels'].keys()) + list(hc_indels['indels'].keys()) + list(pindel_indels['indels'].keys()) + list(pisces_indels['indels'].keys()) + list(platypus_indels['indels'].keys()) + list(strelka_indels['indels'].keys())  + list(scalpel_indels['indels'].keys()) + list(varscan2_indels['indels'].keys()) ))
+	all_indels = sorted(set(all_indels))
 	for indels in all_indels :
 		vcfinfo = {}
-		if indels in freebayes_indels['indels'] :
-			vcfinfo['freebayes']=indels
-		if indels in hc_indels['indels'] :
-			vcfinfo['HC']=indels
-		if indels in pindel_indels['indels'] :
-			vcfinfo['pindel']=indels
-		if indels in pisces_indels['indels'] :
-			vcfinfo['pisces']=indels
-		if indels in platypus_indels['indels'] :
-			vcfinfo['platypus']=indels
-		if indels in scalpel_indels['indels'] :
-			vcfinfo['scalpel']=indels
-		if indels in strelka_indels['indels'] :
-			vcfinfo['strelka']=indels
-		if indels in varscan2_indels['indels'] :
-			vcfinfo['varscan2']=indels
+		if freebayes_indels is not None :
+			if indels in freebayes_indels['indels'] :
+				vcfinfo['freebayes']=indels
+		if hc_indels is not None :
+			if indels in hc_indels['indels'] :
+				vcfinfo['HC']=indels
+		if pindel_indels is not None :
+			if indels in pindel_indels['indels'] :
+				vcfinfo['pindel']=indels
+		if pisces_indels is not None :
+			if indels in pisces_indels['indels'] :
+				vcfinfo['pisces']=indels
+		if platypus_indels is not None :
+			if indels in platypus_indels['indels'] :
+				vcfinfo['platypus']=indels
+		if scalpel_indels is not None :
+			if indels in scalpel_indels['indels'] :
+				vcfinfo['scalpel']=indels
+		if strelka_indels is not None :
+			if indels in strelka_indels['indels'] :
+				vcfinfo['strelka']=indels
+		if varscan2_indels is not None :
+			if indels in varscan2_indels['indels'] :
+				vcfinfo['varscan2']=indels
 		called_by = list(vcfinfo.keys())
 		if all(value == vcfinfo[called_by[0]] for value in vcfinfo.values()):
 			format=''
@@ -341,7 +364,7 @@ def mergeindels(freebayes_indels, hc_indels, pindel_indels, pisces_indels, platy
 					filt = "LowVariantFreq|"+callers
 				else :
 					filt = callers
-				if nb_callers_pass >= 5 :
+				if nb_callers_pass >= n_concordant :
 					filt =  "CONCORDANT|"+filt
 				else :
 					filt = "DISCORDANT|"+filt
@@ -356,14 +379,75 @@ def mergeindels(freebayes_indels, hc_indels, pindel_indels, pisces_indels, platy
 		else :
 			print("Conflict in ref and alt alleles between callers at pos "+indel)
 
-freebayes_indels = parse_FreeBayesindels(sys.argv[1])
-hc_indels = parse_HaplotypeCallerindels(sys.argv[2])
-pindel_indels = parse_Pindelindels(sys.argv[3])
-pisces_indels = parse_Piscesindels(sys.argv[4])
-platypus_indels = parse_Platypusindels(sys.argv[5])
-scalpel_indels = parse_Scalpelindels(sys.argv[6])
-strelka_indels = parse_Strelkaindels(sys.argv[7])
-varscan2_indels = parse_VarScan2indels(sys.argv[8])
-output = sys.argv[9]
 
-mergeindels(freebayes_indels, hc_indels, pindel_indels ,pisces_indels, platypus_indels, scalpel_indels, strelka_indels ,varscan2_indels, output)
+parser = argparse.ArgumentParser(description="Merge germline indel vcf files from different variants callers")
+parser.add_argument('--FreeBayes', type=str, required=False)
+parser.add_argument('--HaplotypeCaller', type=str, required=False)
+parser.add_argument('--pindel', type=str, required=False)
+parser.add_argument('--Pisces', type=str, required=False)
+parser.add_argument('--Platypus', type=str, required=False)
+parser.add_argument('--Scalpel', type=str, required=False)
+parser.add_argument('--Strelka', type=str, required=False)
+parser.add_argument('--VarScan2', type=str, required=False)
+parser.add_argument('-N',type=int, required=True, help="Number of vote to be concordant")
+parser.add_argument('output', type=str)
+args = parser.parse_args()
+
+n_concordant = args.N
+n_vc = 0
+
+if args.FreeBayes is not None :
+	freebayes_indels = parse_FreeBayesindels(args.FreeBayes)
+	n_vc = n_vc + 1
+else :
+	freebayes_indels = None
+
+if args.HaplotypeCaller is not None :
+	hc_indels = parse_HaplotypeCallerindels(args.HaplotypeCaller)
+	n_vc = n_vc + 1
+else :
+	hc_indels = None
+
+if args.pindel is not None :
+	pindel_indels = parse_Pindelindels(args.pindel)
+	n_vc = n_vc + 1
+else :
+	hc_indels = None
+
+if args.Pisces is not None :
+	pisces_indels = parse_Piscesindels(args.Pisces)
+	n_vc = n_vc + 1
+else :
+	pisces_indels = None
+
+if args.Platypus is not None :
+	platypus_indels = parse_Platypusindels(args.Platypus)
+	n_vc = n_vc + 1
+else :
+	platypus_indels = None
+
+if args.Scalpel is not None :
+	scalpel_indels = parse_Scalpelindels(args.Scalpel)
+	n_vc = n_vc + 1
+else :
+	scalpel_indels = None
+
+if args.Strelka is not None :
+	strelka_indels = parse_Strelkaindels(args.Strelka)
+	n_vc = n_vc + 1
+else :
+	strelka_indels = None
+
+if args.VarScan2 is not None :
+	varscan2_indels = parse_VarScan2indels(args.VarScan2)
+	n_vc = n_vc + 1
+else :
+	varscan2_indels = None
+
+output = args.output
+
+if n_concordant > n_vc :
+	sys.exit("N concordant cannot be greater than the number of variant caller")
+
+
+mergeindels(freebayes_indels, hc_indels, pindel_indels ,pisces_indels, platypus_indels, scalpel_indels, strelka_indels ,varscan2_indels, output, n_concordant)

@@ -393,22 +393,35 @@ if not os.path.exists(config["iAnnotSV"]["all_canonical_txt"]) :
 if not os.path.exists(config["iAnnotSV"]["region_to_exclude"]) :
     sys.exit("Missing iAnnot region_to_exclude")
 
+#GERMLINE Variant Caller used for the analysis
+if config["tools"]["snv_calling_germline"] == "All" :
+    vc_list_snv_germline = ['FreeBayes', 'HaplotypeCaller','Pisces','Platypus','Strelka','VarScan2']
+else :
+    vc_list_snv_germline = config["tools"]["snv_calling_germline"]
+    
+if config["tools"]["indel_calling_germline"] == "All" :
+    vc_list_indel_germline = ['FreeBayes', 'HaplotypeCaller', 'pindel', 'Pisces', 'Platypus', 'Scalpel', 'Strelka', 'Strelka', 'VarScan2']
+else :
+    vc_list_indel_germline = config["tools"]["indel_calling_germline"]
+
 #SOMATIC Variant Caller used for the analysis
 if config["tools"]["snv_calling_somatic"] == "All" :
-    vc_list_snv = ['FreeBayes', 'Lancet', 'LoFreq', 'Muse', 'Mutect', 'Mutect2', 'Seurat', 'Shimmer', 'SomaticSniper', 'Strelka', 'VarDict', 'VarScan2', 'Virmid']
+    vc_list_snv_somatic = ['FreeBayes', 'Lancet', 'LoFreq', 'Muse', 'Mutect', 'Mutect2', 'Seurat', 'Shimmer', 'SomaticSniper', 'Strelka', 'VarDict', 'VarScan2', 'Virmid']
 else :
-    vc_list_snv = config["tools"]["snv_calling_somatic"]
+    vc_list_snv_somatic = config["tools"]["snv_calling_somatic"]
     
 if config["tools"]["indel_calling_somatic"] == "All" :
-    vc_list_indel = ['FreeBayes', 'Lancet', 'LoFreq', 'Mutect2', 'pindel', 'Seurat', 'Scalpel', 'Strelka', 'VarDict', 'VarScan2']
+    vc_list_indel_somatic = ['FreeBayes', 'Lancet', 'LoFreq', 'Mutect2', 'pindel', 'Seurat', 'Scalpel', 'Strelka', 'VarDict', 'VarScan2']
 else :
-    vc_list_indel = config["tools"]["indel_calling_somatic"]
+    vc_list_indel_somatic = config["tools"]["indel_calling_somatic"]
 
 
 fastq_dir = config["dir"]["base"] + "/" + config["dir"]["fastq_dir"]
 
-print(vc_list_snv)
-print(vc_list_indel)
+print(vc_list_snv_germline)
+print(vc_list_indel_germline)
+print(vc_list_snv_somatic)
+print(vc_list_indel_somatic)
 
 #================================================================#
 #                    Variables from analysis sheet
@@ -454,9 +467,11 @@ COV_NORMAL=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_samp
 COV_TUMOR=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/QC/{seq_name}.cov.uniformity",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_TUMOR),type_of_sample="TumorSample")
 QC_TUMOR=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/QC/{seq_name}.bam.qc",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_TUMOR),type_of_sample="TumorSample")
 QC_NORMAL=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/{{type_of_sample}}/QC/{seq_name}.bam.qc",zip,tumor=TUMOR, normal=NORMAL ,seq_name=SAMPLES_NORMAL),type_of_sample="NormalSample")
+GERMLINE_VC_SNV=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{{variant_caller}}/{seq_name}.SNP.{{variant_caller}}.germline.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL),variant_caller=vc_list_snv_germline)
+GERMLINE_VC_INDEL=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{{variant_caller}}/{seq_name}.INDEL.{{variant_caller}}.germline.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL),variant_caller=vc_list_indel_germline)
 SOMATIC_VC_SV = expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Delly/{seq_name}_vs_{normal}.Delly.somatic.sv.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR)
-SOMATIC_VC_SNV=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.SNP.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_snv)
-SOMATIC_VC_INDEL=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.INDEL.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_indel)
+SOMATIC_VC_SNV=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.SNP.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_snv_somatic)
+SOMATIC_VC_INDEL=expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.INDEL.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_indel_somatic)
 SOMATIC_ANNOT=expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{seq_name}_vs_{normal}.somatic.snv.result",zip,tumor=TUMOR, normal=NORMAL,seq_name=SAMPLES_TUMOR)
 GERMLINE_SNP_ANNOT=expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{seq_name}.germline.snv.result",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL)
 GERMLINE_INDEL_ANNOT=expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{seq_name}.germline.indel.result",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL)
@@ -483,31 +498,59 @@ SHIMMER=expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/Shimmer/
 #================================================================#
 #                      Input Functions
 #================================================================#
+#get snv somatic vcf files
+def input_germline_snv(wildcards):
+    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{{variant_caller}}/{seq_name}.SNP.{{variant_caller}}.germline.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL),variant_caller=vc_list_snv_germline)
+    return tab
+
+def input_germline_snv_params(wildcards):
+    params = []
+    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{{variant_caller}}/{seq_name}.SNP.{{variant_caller}}.germline.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL),variant_caller=vc_list_snv_germline)
+    for elt in tab :
+        for vc in vc_list_snv_germline :
+            if re.search(vc, elt) :
+                params.append("--%s %s"%(vc, elt))
+    return params
+
+#get indel germline vcf files
+def input_germline_indel(wildcards):
+    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{{variant_caller}}/{seq_name}.INDEL.{{variant_caller}}.germline.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL),variant_caller=vc_list_indel_germline)
+    return tab
+
+def input_germline_indel_params(wildcards):
+    params = []
+    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/{{variant_caller}}/{seq_name}.INDEL.{{variant_caller}}.germline.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_NORMAL),variant_caller=vc_list_indel_germline)
+    for elt in tab :
+        for vc in vc_list_indel_germline :
+            if re.search(vc, elt) :
+                params.append("--%s %s"%(vc, elt))
+    return params
+
 
 #get snv somatic vcf files
 def input_somatic_snv(wildcards):
-    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.SNP.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_snv)
+    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.SNP.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_snv_somatic)
     return tab
 
 def input_somatic_snv_params(wildcards):
     params = []
-    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.SNP.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_snv)
+    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.SNP.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_snv_somatic)
     for elt in tab :
-        for vc in vc_list_snv :
+        for vc in vc_list_snv_somatic :
             if re.search(vc, elt) :
                 params.append("--%s %s"%(vc, elt))
     return params
 
 #get indel somatic vcf files
 def input_somatic_indel(wildcards):
-    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.INDEL.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_indel)
+    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.INDEL.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_indel_somatic)
     return tab
 
 def input_somatic_indel_params(wildcards):
     params = []
-    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.INDEL.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_indel)
+    tab = expand(expand(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.INDEL.{{variant_caller}}.somatic.LeftAlign.vcf",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR),variant_caller=vc_list_indel_somatic)
     for elt in tab :
-        for vc in vc_list_indel :
+        for vc in vc_list_indel_somatic :
             if re.search(vc, elt) :
                 params.append("--%s %s"%(vc, elt))
     return params
@@ -1746,13 +1789,14 @@ rule pindel_filter_region :
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"],
     output:
-        output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.INDEL.pindel.germline.recode.vcf"
+        output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.INDEL.pindel.germline.LeftAlign.vcf"
     container:
         "docker://ngsom/tumorseq"
     params:
         base_dir=output_dir
     shell:"""
         vcftools --vcf {input.vcf} --bed {input.target} --recode-INFO-all --recode --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/NormalSample/pindel/{wildcards.seq_name}.INDEL.pindel.germline
+        mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/NormalSample/pindel/{wildcards.seq_name}.INDEL.pindel.germline.recode.vcf {output}
         """
 
 #Run MSI analysis
@@ -1966,7 +2010,7 @@ rule SomaticSniper :
         ref_dict=config["genome"]["dict_file"],
         target=config["metadata"]["design"],
     output:
-        temp(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.vcf")
+        temp(config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SNP.SomaticSniper.somatic.vcf")
     container:
         "docker://ngsom/somatic"
     params:
@@ -1978,22 +2022,22 @@ rule SomaticSniper :
 
 rule SomaticSniperFilterRegion :
     input:
-        vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.vcf",
+        vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SNP.SomaticSniper.somatic.vcf",
         target=config["metadata"]["design"]
     output:
-        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.somatic.recode.vcf"
+        config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SNP.SomaticSniper.somatic.recode.vcf"
     container:
         "docker://ngsom/somatic"
     params:
         base_dir=output_dir
     shell:"""
     # keep variant in region
-    vcftools --vcf {input.vcf} --bed {input.target} --recode-INFO-all --recode --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/SomaticSniper/{wildcards.seq_name}_vs_{wildcards.normal}.SomaticSniper.somatic
+    vcftools --vcf {input.vcf} --bed {input.target} --recode-INFO-all --recode --out {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/SomaticSniper/{wildcards.seq_name}_vs_{wildcards.normal}.SNP.SomaticSniper.somatic
     """
 
 rule SomaticSniperBreakMulti :
     input:
-        vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.somatic.recode.vcf"
+        vcf=config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SNP.SomaticSniper.somatic.recode.vcf"
     output:
         config["dir"]["base"]+"/{tumor}_{normal}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SNP.SomaticSniper.somatic.LeftAlign.vcf"
     container:
@@ -2019,11 +2063,11 @@ rule LoFreqSomatic :
         base_dir=output_dir
     shell:"""
     #Somatic Variant calling with LoFreq
-    LoFreq indelqual --dindel --ref {input.ref} -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/normal.dindel.bam {input.paired[1]}
-	LoFreq indelqual --dindel --ref {input.ref} -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/tumor.dindel.bam {input.paired[0]}
+    lofreq indelqual --dindel --ref {input.ref} -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/normal.dindel.bam {input.paired[1]}
+	lofreq indelqual --dindel --ref {input.ref} -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/tumor.dindel.bam {input.paired[0]}
 	samtools index {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/normal.dindel.bam
 	samtools index {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/tumor.dindel.bam
-    LoFreq somatic --call-indels -n {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/normal.dindel.bam -t {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/tumor.dindel.bam -f {input.ref} --threads 8 -l {input.target} -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.
+    lofreq somatic --call-indels -n {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/normal.dindel.bam -t {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/tumor.dindel.bam -f {input.ref} --threads 8 -l {input.target} -o {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.
     gunzip -f {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.somatic_final.snvs.vcf.gz
     gunzip -f {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.somatic_final.indels.vcf.gz
     mv {params.base_dir}/{wildcards.tumor}_{wildcards.normal}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.somatic_final.snvs.vcf {output.snp}
@@ -2671,44 +2715,34 @@ rule GATK_left_align_Shimmer :
 #Merge vcf SNP Germline
 rule merge_snv_caller_germline :
     input:
-        freebayes_snv=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/FreeBayes/{seq_name}.SNP.FreeBayes.germline.LeftAlign.vcf",
-        hc_snv=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/HaplotypeCaller/{seq_name}.SNP.HaplotypeCaller.germline.LeftAlign.vcf",
-        pisces_snv=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Pisces/{seq_name}.SNP.Pisces.germline.LeftAlign.vcf",
-        platypus_snv=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Platypus/{seq_name}.SNP.Platypus.germline.LeftAlign.vcf",
-        varscan2_snv=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/VarScan2/{seq_name}.SNP.VarScan2.germline.LeftAlign.vcf",
-        strelka_snv=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Strelka/{seq_name}.SNP.Strelka.germline.LeftAlign.vcf",
+        input_files=input_germline_snv
     output:
         output_dir+"/{tumor}_{normal}/NormalSample/{seq_name}.SNP.germline.merge.vcf",
     container:
         "docker://ngsom/tumorseq"
     params:
-        base_dir=output_dir
+        base_dir=output_dir,
+        args=input_germline_snv_params
     shell:
         """
         source activate utils
-        workflow/scripts/merge_caller_germline.py {input.freebayes_snv} {input.hc_snv} {input.pisces_snv} {input.platypus_snv} {input.strelka_snv} {input.varscan2_snv} {output}
+        workflow/scripts/merge_caller_germline.py {params.args} -N 3 {output}
         """
 
 rule merge_indel_caller_germline :
     input:
-        freebayes_indel=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/FreeBayes/{seq_name}.INDEL.FreeBayes.germline.LeftAlign.vcf",
-        hc_indel=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/HaplotypeCaller/{seq_name}.INDEL.HaplotypeCaller.germline.LeftAlign.vcf",
-        pisces_indel=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Pisces/{seq_name}.INDEL.Pisces.germline.LeftAlign.vcf",
-        platypus_indel=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Platypus/{seq_name}.INDEL.Platypus.germline.LeftAlign.vcf",
-        varscan2_indel=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/VarScan2/{seq_name}.INDEL.VarScan2.germline.LeftAlign.vcf",
-        strelka_indel=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Strelka/{seq_name}.INDEL.Strelka.germline.LeftAlign.vcf",
-        scalpel_indel=config["dir"]["base"]+"/{tumor}_{normal}/NormalSample/Scalpel/{seq_name}.INDEL.Scalpel.germline.LeftAlign.vcf",
-        pindel_indel=output_dir+"/{tumor}_{normal}/NormalSample/pindel/{seq_name}.INDEL.pindel.germline.recode.vcf"
+        input_files=input_germline_indel
     output:
         output_dir+"/{tumor}_{normal}/NormalSample/{seq_name}.INDEL.germline.merge.vcf",
     container:
         "docker://ngsom/tumorseq"
     params:
-        base_dir=output_dir
+        base_dir=output_dir,
+        args=input_germline_indel_params
     shell:
         """
         source activate utils
-        workflow/scripts/merge_caller_indel_germline.py {input.freebayes_indel} {input.hc_indel} {input.pindel_indel} {input.pisces_indel} {input.platypus_indel} {input.scalpel_indel} {input.strelka_indel} {input.varscan2_indel} {output}
+        workflow/scripts/merge_caller_indel_germline.py {params.args} -N 4 {output}
         """
 
 #Merge vcf SNP Germline

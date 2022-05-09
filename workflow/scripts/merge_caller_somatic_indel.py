@@ -343,26 +343,36 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 	all_indels = sorted(set(all_indels))
 	for indels in all_indels :
 		vcfinfo = {}
-		if indels in freebayes_indels['indels'] :
-			vcfinfo['freebayes']=indels
-		if indels in lofreq_indels['indels'] :
-			vcfinfo['lofreq']=indels
-		if indels in mutect2_indels['indels'] :
-			vcfinfo['mutect2']=indels
-		if indels in pindel_indels['indels'] :
-			vcfinfo['pindel']=indels
-		if indels in scalpel_indels['indels'] :
-			vcfinfo['scalpel']=indels
-		if indels in seurat_indels['indels'] :
-			vcfinfo['seurat']=indels
-		if indels in strelka_indels['indels'] :
-			vcfinfo['strelka']=indels
-		if indels in vardict_indels['indels'] :
-			vcfinfo['vardict']=indels
-		if indels in varscan2_indels['indels'] :
-			vcfinfo['varscan2']=indels
-		if indels in lancet_indels['indels'] :
-			vcfinfo['lancet']=indels
+		if freebayes_indels is not None :
+			if indels in freebayes_indels['indels'] :
+				vcfinfo['freebayes']=indels
+		if lofreq_indels is not None :
+			if indels in lofreq_indels['indels'] :
+				vcfinfo['lofreq']=indels
+		if mutect2_indels is not None :
+			if indels in mutect2_indels['indels'] :
+				vcfinfo['mutect2']=indels
+		if pindel_indels is not None :
+			if indels in pindel_indels['indels'] :
+				vcfinfo['pindel']=indels
+		if scalpel_indels is not None :
+			if indels in scalpel_indels['indels'] :
+				vcfinfo['scalpel']=indels
+		if seurat_indels is not None :
+			if indels in seurat_indels['indels'] :
+				vcfinfo['seurat']=indels
+		if strelka_indels is not None :
+			if indels in strelka_indels['indels'] :
+				vcfinfo['strelka']=indels
+		if vardict_indels is not None :
+			if indels in vardict_indels['indels'] :
+				vcfinfo['vardict']=indels
+		if varscan2_indels is not None :
+			if indels in varscan2_indels['indels'] :
+				vcfinfo['varscan2']=indels
+		if lancet_indels is not None :
+			if indels in lancet_indels['indels'] :
+				vcfinfo['lancet']=indels
 		called_by = list(vcfinfo.keys())
 		if all(value == vcfinfo[called_by[0]] for value in vcfinfo.values()):
 			format=''

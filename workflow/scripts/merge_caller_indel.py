@@ -9,6 +9,7 @@ import numpy
 from datetime import datetime
 import re
 import math
+import argparse
 
 def read_vcf(path):
     with open(path, 'r') as f:
@@ -239,59 +240,87 @@ def get_af(ad):
 		af = numpy.nan
 	return af
 
-def mergeindels(freebayes_indels, hc_indels, lofreq_indels, mutect2_indels, pisces_indels, platypus_indels, vardict_indels, varscan2_indels, pindel_indels, scalpel_indels, output):
-	SAMPLE = os.path.basename(sys.argv[1])
-	filter1=re.compile('(.*).INDEL.*')
-	SAMPLE=filter1.search(sys.argv[1]).group(1)
+def mergeindels(freebayes_indels, hc_indels, lofreq_indels, mutect2_indels, pisces_indels, platypus_indels, vardict_indels, varscan2_indels, pindel_indels, scalpel_indels, output, n_concordant):
+	all_indels = list()
 	sf = open(output,"w")
 	sf.write("%s\n" %("##fileformat=VCFv4.2"))
 	sf.write("%s%s\n" %("##date=",str(datetime.now())))
 	sf.write("%s\n" %("##source=MergeCaller"))
-	sf.write("%s\n" %("##FILTER=<ID=FreeBayes,Description=\"Called by FreeBayes\">"))
-	sf.write("%s\n" %("##FILTER=<ID=HC,Description=\"Called by HaplotypeCaller\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Lofreq,Description=\"Called by LoFreq\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Mutect2,Description=\"Called by Mutect2\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Pisces,Description=\"Called by Pisces\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Platypus,Description=\"Called by Platypus\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Vardict,Description=\"Called by Vardict\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Varscan2,Description=\"Called by Varscan2\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Pindel,Description=\"Called by Pindel\">"))
-	sf.write("%s\n" %("##FILTER=<ID=Scalpel,Description=\"Called by Scalpel\">"))
-	sf.write("%s\n" %("##INFO=<ID=VAF,Number=1,Type=Float,Description=\"Median vaf between callers\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADP1,Number=R,Type=Integer,Description=\"Allelic depths reported by FreeBayes for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADHC,Number=R,Type=Integer,Description=\"Allelic depths reported by HaplotypeCaller for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADLF,Number=R,Type=Integer,Description=\"Allelic depths reported by LoFreq for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADM2,Number=R,Type=Integer,Description=\"Allelic depths reported by Mutect2 for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADPS,Number=R,Type=Integer,Description=\"Allelic depths reported by Pisces for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADPY,Number=R,Type=Integer,Description=\"Allelic depths reported by Platypus for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADVC,Number=R,Type=Integer,Description=\"Allelic depths reported by Vardict for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADVS2,Number=R,Type=Integer,Description=\"Allelic depths reported by Varscan2 for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADPI,Number=R,Type=Integer,Description=\"Allelic depths reported by Pindel for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\n" %("##FORMAT=<ID=ADSC,Number=R,Type=Integer,Description=\"Allelic depths reported by Scalpel for the ref and alt alleles in the order listed\">"))
+	if freebayes_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=FreeBayes,Description=\"Called by FreeBayes\""))
+		all_indels = all_indels + list(freebayes_indels['indels'].keys())
+	if hc_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=HC,Description=\"Called by HaplotypeCaller\""))
+		all_indels = all_indels + list(hc_indels['indels'].keys())
+	if lofreq_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Lofreq,Description=\"Called by LoFreq\""))
+		all_indels = all_indels + list(lofreq_indels['indels'].keys())
+	if mutect2_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Mutect2,Description=\"Called by Mutect2\""))
+		all_indels = all_indels + list(mutect2_indels['indels'].keys())
+	if pindel_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Pindel,Description=\"Called by Pindel\""))
+		all_indels = all_indels + list(pindel_indels['indels'].keys())
+	if pisces_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Pisces,Description=\"Called by Pisces\""))
+		all_indels = all_indels + list(pisces_indels['indels'].keys())
+	if platypus_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Platypus,Description=\"Called by Platypus\""))
+		all_indels = all_indels + list(platypus_indels['indels'].keys())
+	if scalpel_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Scalpel,Description=\"Called by Scalpel\""))
+		all_indels = all_indels + list(scalpel_indels['indels'].keys())
+	if vardict_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Vardict,Description=\"Called by Vardict\""))
+		all_indels = all_indels + list(vardict_indels['indels'].keys())
+	if varscan2_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=Varscan2,Description=\"Called by Varscan2\""))
+		all_indels = all_indels + list(varscan2_indels['indels'].keys())
+	sf.write("%s\n" %("##INFO=<ID=VAF,Number=1,Type=Float,Description=\"Median vaf between callers\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADP1,Number=R,Type=Integer,Description=\"Allelic depths reported by FreeBayes for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADHC,Number=R,Type=Integer,Description=\"Allelic depths reported by HaplotypeCaller for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADLF,Number=R,Type=Integer,Description=\"Allelic depths reported by LoFreq for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADM2,Number=R,Type=Integer,Description=\"Allelic depths reported by Mutect2 for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADPS,Number=R,Type=Integer,Description=\"Allelic depths reported by Pisces for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADPY,Number=R,Type=Integer,Description=\"Allelic depths reported by Platypus for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADVC,Number=R,Type=Integer,Description=\"Allelic depths reported by Vardict for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADVS2,Number=R,Type=Integer,Description=\"Allelic depths reported by Varscan2 for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADPI,Number=R,Type=Integer,Description=\"Allelic depths reported by Pindel for the ref and alt alleles in the order listed\""))
+	sf.write("%s\n" %("##FORMAT=<ID=ADSC,Number=R,Type=Integer,Description=\"Allelic depths reported by Scalpel for the ref and alt alleles in the order listed\""))
 	sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('#CHROM', 'POS','ID', 'REF', 'ALT','QUAL', 'FILTER', 'INFO','FORMAT', "SAMPLE"))
-	all_indels = sorted(set( list(freebayes_indels['indels'].keys()) + list(hc_indels['indels'].keys()) +  list(lofreq_indels['indels'].keys()) + list(mutect2_indels['indels'].keys()) + list(pisces_indels['indels'].keys()) + list(platypus_indels['indels'].keys()) + list(pindel_indels['indels'].keys()) + list(scalpel_indels['indels'].keys()) + list(vardict_indels['indels'].keys()) + list(varscan2_indels['indels'].keys()) ))
+	all_indels = sorted(set(all_indels))
 	for indels in all_indels :
 		vcfinfo = {}
-		if indels in freebayes_indels['indels'] :
-			vcfinfo['freebayes']=indels
-		if indels in hc_indels['indels'] :
-			vcfinfo['HC']=indels
-		if indels in lofreq_indels['indels'] :
-			vcfinfo['lofreq']=indels
-		if indels in mutect2_indels['indels'] :
-			vcfinfo['mutect2']=indels
-		if indels in pisces_indels['indels'] :
-			vcfinfo['pisces']=indels
-		if indels in platypus_indels['indels'] :
-			vcfinfo['platypus']=indels
-		if indels in vardict_indels['indels'] :
-			vcfinfo['vardict']=indels
-		if indels in varscan2_indels['indels'] :
-			vcfinfo['varscan2']=indels
-		if indels in pindel_indels['indels'] :
-			vcfinfo['pindel']=indels
-		if indels in scalpel_indels['indels'] :
-			vcfinfo['scalpel']=indels
+		if freebayes_indels is not None :
+			if indels in freebayes_indels['indels'] :
+				vcfinfo['freebayes']=indels
+		if hc_indels is not None :
+			if indels in hc_indels['indels'] :
+				vcfinfo['HC']=indels
+		if lofreq_indels is not None :
+			if indels in lofreq_indels['indels'] :
+				vcfinfo['lofreq']=indels
+		if mutect2_indels is not None :
+			if indels in mutect2_indels['indels'] :
+				vcfinfo['mutect2']=indels
+		if pisces_indels is not None :
+			if indels in pisces_indels['indels'] :
+				vcfinfo['pisces']=indels
+		if platypus_indels is not None :
+			if indels in platypus_indels['indels'] :
+				vcfinfo['platypus']=indels
+		if vardict_indels is not None :
+			if indels in vardict_indels['indels'] :
+				vcfinfo['vardict']=indels
+		if varscan2_indels is not None :
+			if indels in varscan2_indels['indels'] :
+				vcfinfo['varscan2']=indels
+		if pindel_indels is not None :
+			if indels in pindel_indels['indels'] :
+				vcfinfo['pindel']=indels
+		if scalpel_indels is not None :
+			if indels in scalpel_indels['indels'] :
+				vcfinfo['scalpel']=indels
 		called_by = list(vcfinfo.keys())
 		if all(value == vcfinfo[called_by[0]] for value in vcfinfo.values()):
 			format=''
@@ -460,14 +489,14 @@ def mergeindels(freebayes_indels, hc_indels, lofreq_indels, mutect2_indels, pisc
 						nb_callers_pass += 1
 						callers=callers+'Scalpel|'
 
-			if nb_callers_pass > 0 :
+			if nb_callers_pass > n_concordant :
 				vaf = vaf = round(numpy.nanmedian(af),4)
 				callers = callers[:-1]
 				if vaf < 0.05 :
 					filt = "LowVariantFreq|"+callers
 				else :
 					filt = callers
-				if nb_callers_pass >= 5 :
+				if nb_callers_pass > n_concordant :
 					filt =  "CONCORDANT|"+filt
 				else :
 					filt = "DISCORDANT|"+filt
@@ -482,16 +511,87 @@ def mergeindels(freebayes_indels, hc_indels, lofreq_indels, mutect2_indels, pisc
 		else :
 			print("Conflict in ref and alt alleles between callers at pos "+indel)
 
-freebayes_indels = parse_FreeBayesindels(sys.argv[1])
-hc_indels = parse_HaplotypeCallerindels(sys.argv[2])
-lofreq_indels = parse_LoFreqindels(sys.argv[3])
-mutect2_indels = parse_Mutect2indels(sys.argv[4])
-pisces_indels = parse_Piscesindels(sys.argv[5])
-platypus_indels = parse_Platypusindels(sys.argv[6])
-vardict_indels = parse_VarDictindels(sys.argv[7])
-varscan2_indels = parse_VarScan2indels(sys.argv[8])
-pindel_indels = parse_Pindelindels(sys.argv[9])
-scalpel_indels = parse_Scalpelindels(sys.argv[10])
-output = sys.argv[11]
+parser = argparse.ArgumentParser(description="Merge indel vcf files from different variants callers")
+parser.add_argument('--FreeBayes', type=str, required=False)
+parser.add_argument('--HaplotypeCaller', type=str, required=False)
+parser.add_argument('--LoFreq', type=str, required=False)
+parser.add_argument('--Mutect2', type=str, required=False)
+parser.add_argument('--pindel', type=str, required=False)
+parser.add_argument('--Pisces', type=str, required=False)
+parser.add_argument('--Platypus', type=str, required=False)
+parser.add_argument('--Scalpel', type=str, required=False)
+parser.add_argument('--VarDict', type=str, required=False)
+parser.add_argument('--VarScan2', type=str, required=False)
+parser.add_argument('-N',type=int, required=True, help="Number of vote to be concordant")
+parser.add_argument('output', type=str)
+args = parser.parse_args()
 
-mergeindels(freebayes_indels, hc_indels, lofreq_indels, mutect2_indels, pisces_indels, platypus_indels, vardict_indels, varscan2_indels, pindel_indels, scalpel_indels, output)
+n_concordant = args.N
+n_vc = 0
+
+if args.FreeBayes is not None :
+	freebayes_indels = parse_FreeBayesindels(args.FreeBayes)
+	n_vc = n_vc + 1
+else :
+	freebayes_indels = None
+
+if args.HaplotypeCaller is not None :
+	hc_indels = parse_HaplotypeCallerindels(args.HaplotypeCaller)
+	n_vc = n_vc + 1
+else :
+	HC_indels = None
+
+if args.LoFreq is not None :
+	lofreq_indels = parse_LoFreqindels(args.LoFreq)
+	n_vc = n_vc + 1
+else :
+	lofreq_indels = None
+
+if args.Mutect2 is not None :
+	mutect2_indels = parse_Mutect2indels(args.Mutect2)
+	n_vc = n_vc + 1
+else :
+	mutect2_indels = None
+
+if args.pindel is not None :
+	pindel_indels = parse_Pindelindels(args.pindel)
+	n_vc = n_vc + 1
+else :
+	pindel_indels = None
+
+if args.Pisces is not None :
+	pisces_indels = parse_Piscesindels(args.Pisces)
+	n_vc = n_vc + 1
+else :
+	pisces_indels = None
+
+if args.Platypus is not None :
+	platypus_indels = parse_Platypusindels(args.Platypus)
+	n_vc = n_vc + 1
+else :
+	platypus_indels = None
+
+if args.Scalpel is not None :
+	scalpel_indels = parse_Scalpelindels(args.Scalpel)
+	n_vc = n_vc + 1
+else :
+	scalpel_indels = None
+
+if args.VarDict is not None :
+	vardict_indels = parse_VarDictindels(args.VarDict)
+	n_vc = n_vc + 1
+else :
+	vardict_indels = None
+
+if args.VarScan2 is not None :
+	varscan2_indels = parse_VarScan2indels(args.VarScan2)
+	n_vc = n_vc + 1
+else :
+	varscan2_indels = None
+
+output = args.output
+
+if n_concordant > n_vc :
+	sys.exit("N concordant cannot be greater than the number of variant caller")
+
+mergeindels(freebayes_indels, hc_indels, lofreq_indels, mutect2_indels, pisces_indels, platypus_indels, vardict_indels, varscan2_indels, pindel_indels, scalpel_indels, output, n_concordant)
