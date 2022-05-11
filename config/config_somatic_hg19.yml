@@ -1,0 +1,93 @@
+  description: |
+    This config file works with the Snakefile Sknakefile_tumor_normal_variant_analysis
+
+  author: "Arnaud Guille"
+
+  env1: "/shared/home/aguille/snakefiles/envs/somatic_analysis_environment2.yml"
+  env2: "/shared/home/aguille/snakefiles/envs/somatic_seq_env_py3.yml"
+  env3: "/shared/home/aguille/snakefiles/envs/somatic_analysis_environment_java_jdk.yml"
+  env_file_sv: "/shared/home/aguille/snakefiles/envs/iAnnotSV_env.yml"
+  env_file_gatk: "/shared/home/aguille/snakefiles/envs/gatk_env.yml"
+  env_optitype: "/shared/home/aguille/snakefiles/envs/optitype.yml"
+
+  genome:
+    organism: "Homo Sapiens"
+    version: "hg19"
+    size: "3e9"
+    fasta_file: "/shared/projects/pmngs/human_genome_hg19/sequence/ucsc.hg19.fasta"
+    dict_file: "/shared/projects/pmngs/human_genome_hg19/sequence/ucsc.hg19.dict"
+    chrLength_file: "/shared/projects/pmngs/human_genome_hg19/sequence/sizes.genome"
+    known_indel1: "/shared/projects/pmngs/human_genome_hg19/annot/1000G_phase1.indels.hg19.sites.vcf"
+    known_indel2: "/shared/projects/pmngs/human_genome_hg19/annot/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
+    known_site: "/shared/projects/pmngs/human_genome_hg19/annot/dbsnp_138.hg19.vcf.gz"
+    cosmic: "/shared/projects/pmngs/human_genome_hg19/annot/CosmicCodingMutsV81.hg19.sort.vcf"
+    hla_ref: "/shared/projects/pmngs/human_genome_hg19/sequence/hla_reference_dna.fasta"
+    map_file: "/shared/projects/pmngs/human_genome_hg19/annot/hg19_chr.map"
+    exac_common: "/shared/projects/pmngs/human_genome_hg19/annot/somatic-hg19_small_exac_common_3.vcf"
+    gnomad_af_only: "/shared/projects/pmngs/human_genome_hg19/annot/somatic-hg19_af-only-gnomad.raw.sites.vcf.gz"
+    pon: "/shared/projects/pmngs/human_genome_hg19/annot/pon_impact.vcf.gz"
+    gc_file: "/shared/projects/pmngs/human_genome_hg19/annot/hg19.gc50Base.wig.gz"
+
+  metadata:
+    design: "/shared/projects/pmngs/projet_seq/benchmark/NA12878/nexterarapidcapture_exome_targetedregions.bed"
+    design_name: "WES"
+    seq_type: "pe"
+    analysis_sheet : "/shared/projects/pmngs/projet_seq/benchmark/analysis_sheet.csv"
+    date: "22-04-19"
+    center: "IPC"
+    platform: "illumina"
+    application: "Target"
+    microsat: "/shared/projects/pmngs/human_genome_hg19/annot/microsatellites.list"
+
+  dir:
+    base: "/shared/projects/pmngs/projet_seq/benchmark"
+    fastq_dir: "fastq"
+
+  tools:
+    paired: "1"
+    trimming: "1"
+    molecular_barcode: "0"
+    uniq : "0"
+    dedup : "1"
+    ffpe : "0"
+    mapping: "bwamem"
+    sv_calling: ""
+    snv_calling_somatic: ['FreeBayes', 'Lancet', 'LoFreq', 'Muse', 'Mutect', 'Mutect2', 'Seurat', 'Shimmer', 'SomaticSniper', 'Strelka', 'VarDict', 'VarScan2', 'Virmid']
+    indel_calling_somatic: ['FreeBayes', 'Lancet', 'LoFreq', 'Mutect2', 'pindel', 'Seurat', 'Scalpel', 'Strelka', 'VarDict', 'VarScan2']
+    snv_calling_germline: ['FreeBayes', 'HaplotypeCaller','Pisces','Platypus','Strelka','VarScan2']
+    indel_calling_germline: ['FreeBayes', 'HaplotypeCaller', 'pindel', 'Pisces', 'Platypus', 'Scalpel', 'Strelka', 'Strelka', 'VarScan2']
+  gatk:
+      jar : "/shared/home/aguille/GenomeAnalysisTK.jar"
+
+  mutect:
+      jar : "/shared/home/aguille/mutect-1.1.7.jar"
+      max_alt_allele_in_normal : "0.05"
+      max_alt_allele_in_normal_count : "5"
+
+  annovar:
+      hg19_db : "/shared/projects/pmngs/human_genome_hg19/annot/annovar_0823/humandb/"
+
+  jsm:
+      prior_file : "/shared/home/aguille/snakefiles/config/priors.cfg"
+      init_file : "/shared/home/aguille/snakefiles/config/params.cfg"
+
+  varscan2:
+      min_coverage : "10"
+      min_var_frac : "0.01"
+      min_alt_count : "2"
+
+  freebayes:
+      min_coverage : "10"
+      min_var_frac : "0.01"
+      min_alt_count : "2"
+
+  iAnnotSV:
+      ref_file : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/references/hg19.sv.table.txt"
+      canonical_txt : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/canonicalInfo/canonical_transcripts_cv6.txt"
+      uniprot : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/UcscUniprotdomainInfo/hg19.uniprot.spAnnot.table.txt"
+      repeat_region : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/repeat_region/hg19_repeatRegion.tsv"
+      dgv : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/database_of_genomic_variants/hg19_DGv_Annotation.tsv"
+      cancer_census : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/cosmic/cancer_gene_census.tsv"
+      cosmic_fusion_count : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/cosmic/cosmic_fusion_counts.tsv"
+      all_canonical_txt : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/canonicalInfo/canonical_transcripts.txt"
+      region_to_exclude : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/human.hg19.delly.excl.tsv"
