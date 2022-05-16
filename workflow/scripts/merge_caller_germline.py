@@ -320,9 +320,9 @@ def mergeSNV(freebayes_snv, hc_snv, pisces_snv, platypus_snv, strelka_snv, varsc
 						callers=callers+'Varscan2|'
 
 			if nb_callers_pass > 0 :
-				vaf = round(numpy.nanmedian(af),4)
+				vaf = round(numpy.nanmedian(af),4) * 100
 				callers = callers[:-1]
-				if vaf < 0.05 :
+				if vaf < 5 :
 					filt = "LowVariantFreq|"+callers
 				else :
 					filt = callers
