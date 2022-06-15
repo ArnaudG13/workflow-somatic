@@ -5,6 +5,8 @@ Workflow snakemake pour l'analyse de variants somatiques et constitutionnels (SN
 # Description du workflow
 
 Le workflow intègre toutes les étapes essentielles d'une analyse de variants de type tumeur-normal.
+Le pipeline supporte la présence de plusieurs échantillons tumoraux pour un même patient.
+
 
 * Trimming des fichiers fastq (optionnel)
 * Controle qualité des fichiers fastq
@@ -25,7 +27,9 @@ Le workflow intègre toutes les étapes essentielles d'une analyse de variants d
 
 Le fichier ```config/config_somatic_hg19.yml``` contient tous les chemins vers les fichiers d'annotation, ainsi que les différentes options d'analyse.
 
-Le fichier ```config/cluster2.yml``` contient les paramètres liés au cluster de calcul
+Le fichier ```config/cluster2.yml``` contient les paramètres liés au cluster de calcul.
+
+Le fichier ```config/samples.tsv``` décrit les échantillons et les fichiers fastq à analyser.
 
 ###Fichier de log
 
