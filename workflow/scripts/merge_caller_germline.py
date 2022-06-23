@@ -237,7 +237,7 @@ def mergeSNV(freebayes_snv, hc_snv, pisces_snv, platypus_snv, strelka_snv, varsc
 		if strelka_snv is not None :
 			if snv in strelka_snv['snvs'] :
 				vcfinfo['strelka']=snv
-		if varscan2_snv is not None
+		if varscan2_snv is not None :
 			if snv in varscan2_snv['snvs'] :
 				vcfinfo['varscan2']=snv
 		called_by = list(vcfinfo.keys())
