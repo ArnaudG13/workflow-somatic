@@ -246,7 +246,6 @@ def process_line(in_queue, out_list, out_list2) :
 				for elt in tab_info_id :
 					reg = '('+elt+'=(-?\d+\.?\d*)'+'|'+elt+'=(\w+)'+')'
 					value = re.search(reg,infos).group() if re.search(reg,infos) else None
-
 					if value != None :
 						value = value.split("=")[1]
 
@@ -350,14 +349,14 @@ def process_line(in_queue, out_list, out_list2) :
 				if total_count > 0 :
 					if stringency_parameter == "VarScan2" or stringency_parameter == "VarScan2-FFPE" :
 						variant_frequency = float(dict_record["FREQ"].strip("%"))
+					elif stringency_parameter == "none" and which_vaf=="vaf_tumor":
+							variant_frequency = float(dict_record["VAF_TUMOR"])*100
+					elif stringency_parameter == "none" and which_vaf=="vaf":
+							variant_frequency = float(dict_record["VAF"])*100
 					else :
 						variant_frequency = round(float(alt_count)/float(total_count),3)
 				else :
 					variant_frequency = 0
-				
-				if stringency_parameter == "none" :
-					variant_frequency = float(dict_record["VAF"])
-				
 				#cov on each strand or not
 				if ref_p > 0 and ref_m > 0 :
 					cov_ref_each_strand = True
@@ -990,6 +989,13 @@ if __name__ == "__main__" :
 				tab_format_id.append(format_id)
 		else :
 			break
+
+	if "VAF" in tab_info_id :
+		which_vaf="vaf"
+	elif "VAF_TUMOR" in tab_info_id :
+		which_vaf="vaf_tumor"
+	else :
+		which_vaf="pysam"
 
 	str_col1 = ""
 	str_col2 = ""
