@@ -350,9 +350,9 @@ def process_line(in_queue, out_list, out_list2) :
 					if stringency_parameter == "VarScan2" or stringency_parameter == "VarScan2-FFPE" :
 						variant_frequency = float(dict_record["FREQ"].strip("%"))
 					elif stringency_parameter == "none" and which_vaf=="vaf_tumor":
-							variant_frequency = float(dict_record["VAF_TUMOR"])*100
+							variant_frequency = float(dict_record["VAF_TUMOR"])
 					elif stringency_parameter == "none" and which_vaf=="vaf":
-							variant_frequency = float(dict_record["VAF"])*100
+							variant_frequency = float(dict_record["VAF"])
 					else :
 						variant_frequency = round(float(alt_count)/float(total_count),3)
 				else :
