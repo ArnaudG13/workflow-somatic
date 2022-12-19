@@ -48,7 +48,7 @@ def parse_FreeBayesindels(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample = info[9].split(":")[1]
+			ad_sample = info[9].split(":")[2]
 			qual = info[5]
 			filt = info[6]
 			indels[chrid] = {}
@@ -119,7 +119,7 @@ def parse_Piscesindels(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample = info[9].split(":")[1]
+			ad_sample = info[9].split(":")[2]
 			qual = info[5]
 			filt = info[6]
 			indels[chrid] = {}
@@ -173,7 +173,7 @@ def parse_Strelkaindels(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample = info[9].split(":")[1]
+			ad_sample = info[9].split(":")[5]
 			qual = info[5]
 			filt = info[6]
 			indels[chrid] = {}

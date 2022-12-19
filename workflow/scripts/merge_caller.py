@@ -77,7 +77,7 @@ def parse_FreeBayesSNV(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample = info[9].split(":")[1]
+			ad_sample = info[9].split(":")[2]
 			qual = info[5]
 			filt = info[6]
 			snvs[chrid] = {}
@@ -95,9 +95,16 @@ def parse_VarScan2SNV(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			rd = info[9].split(":")[4]
-			ad = info[9].split(":")[5]
-			ad_sample = rd + "," + ad
+			info_8 = info[8].split(":")
+			info_9 = info[9].split(":")
+			if "AD" in info_8 and "RD" in info_8 :
+				AD=info_8.index("AD")
+				RD=info_8.index("RD")
+				ad = info_9[AD]
+				rd = info_9[RD]
+				ad_sample = rd + "," + ad
+			else :
+				ad_sample = ".,."
 			qual = info[5]
 			filt = info[6]
 			quality = str(-10*math.log10(max(float(info[9].split(":")[8]),2.2250738585072014e-308)))
@@ -116,7 +123,7 @@ def parse_VarDictSNV(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample = info[9].split(":")[1]
+			ad_sample = info[9].split(":")[3]
 			qual = info[5]
 			filt = info[6]
 			snvs[chrid] = {}
@@ -166,7 +173,7 @@ def parse_PiscesSNV(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample = info[9].split(":")[1]
+			ad_sample = info[9].split(":")[2]
 			qual = info[5]
 			filt = info[6]
 			snvs[chrid] = {}
@@ -209,7 +216,7 @@ def parse_LoFreqSNV(vcf):
 			qual = info[5]
 			filt = info[6]
 			val = info[7]
-			DP4 = val.split(";")[2]
+			DP4 = val.split(";")[3]
 			DP4 = DP4.split("=")[1]
 			DP4 = DP4.split(",")
 			ref_count = int(DP4[0]) + int(DP4[1])

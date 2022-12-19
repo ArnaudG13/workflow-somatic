@@ -28,8 +28,8 @@ def parse_MuseSNV(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample_normal = info[9].split(":")[1]
-			ad_sample_tumor = info[10].split(":")[1]
+			ad_sample_normal = info[ind_normal].split(":")[2]
+			ad_sample_tumor = info[ind_tumor].split(":")[2]
 			qual = info[5]
 			filt = info[6]
 			snvs[chrid] = {}
@@ -37,6 +37,11 @@ def parse_MuseSNV(vcf):
 			snvs[chrid]['ad_tumor']=ad_sample_tumor			
 			snvs[chrid]['qual']=qual
 			snvs[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index("TUMOR")
+				ind_normal = header.index("NORMAL")
 
 	return {'snvs':snvs}
 
@@ -48,8 +53,8 @@ def parse_MutectSNV(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample_normal = info[9].split(":")[1]
-			ad_sample_tumor = info[10].split(":")[1]
+			ad_sample_normal = info[ind_normal].split(":")[1]
+			ad_sample_tumor = info[ind_tumor].split(":")[1]
 			qual = info[5]
 			filt = info[6]
 			snvs[chrid] = {}
@@ -57,6 +62,11 @@ def parse_MutectSNV(vcf):
 			snvs[chrid]['ad_tumor']=ad_sample_tumor			
 			snvs[chrid]['qual']=qual
 			snvs[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+				ind_normal = header.index(args.normal)
 
 	return {'snvs':snvs}
 
@@ -80,6 +90,11 @@ def parse_StrelkaSNV(vcf):
 			snvs[chrid]['ad_tumor']=ad_sample_tumor			
 			snvs[chrid]['qual']=somatic_evs
 			snvs[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index("TUMOR")
+				ind_normal = header.index("NORMAL")
 
 	return {'snvs':snvs}
 
@@ -91,8 +106,8 @@ def parse_FreeBayesSNV(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample_normal = info[9].split(":")[1]
-			ad_sample_tumor = info[10].split(":")[1]
+			ad_sample_normal = info[ind_normal].split(":")[2]
+			ad_sample_tumor = info[ind_tumor].split(":")[2]
 			qual = info[5]
 			filt = info[6]
 			snvs[chrid] = {}
@@ -100,6 +115,11 @@ def parse_FreeBayesSNV(vcf):
 			snvs[chrid]['ad_tumor']=ad_sample_tumor			
 			snvs[chrid]['qual']=qual
 			snvs[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+				ind_normal = header.index(args.normal)
 
 	return {'snvs':snvs}
 
@@ -112,12 +132,12 @@ def parse_SomaticSniperSNV(vcf):
 			info=line.split("\t")
 			if len(info[9].split(":")) >= 11 :
 				chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-				DP4_sample_normal = info[9].split(":")[3]
+				DP4_sample_normal = info[ind_normal].split(":")[3]
 				DP4_sample_normal = DP4_sample_normal.split(",")
 				ref_count_normal = int(DP4_sample_normal[0]) + int(DP4_sample_normal[1])
 				alt_count_normal = int(DP4_sample_normal[2]) + int(DP4_sample_normal[3])
 				ad_sample_normal = str(ref_count_normal) + "," + str(alt_count_normal)
-				DP4_sample_tumor = info[10].split(":")[3]
+				DP4_sample_tumor = info[ind_tumor].split(":")[3]
 				DP4_sample_tumor = DP4_sample_tumor.split(",")
 				ref_count_tumor = int(DP4_sample_tumor[0]) + int(DP4_sample_tumor[1])
 				alt_count_tumor = int(DP4_sample_tumor[2]) + int(DP4_sample_tumor[3])
@@ -129,6 +149,11 @@ def parse_SomaticSniperSNV(vcf):
 				snvs[chrid]['ad_tumor']=ad_sample_tumor			
 				snvs[chrid]['qual']=qual
 				snvs[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index("TUMOR")
+				ind_normal = header.index("NORMAL")
 
 	return {'snvs':snvs}
 
@@ -141,24 +166,30 @@ def parse_VarScan2SNV(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			rd_normal = info[9].split(":")[3]
-			ad_normal = info[9].split(":")[4]
+			rd_normal = info[ind_normal].split(":")[3]
+			ad_normal = info[ind_normal].split(":")[4]
 			ad_sample_normal = rd_normal + "," + ad_normal
-			rd_tumor = info[10].split(":")[3]
-			ad_tumor = info[10].split(":")[4]
+			rd_tumor = info[ind_tumor].split(":")[3]
+			ad_tumor = info[ind_tumor].split(":")[4]
 			ad_sample_tumor = rd_tumor + "," + ad_tumor
-			somatic_score = info[7].split(";")[4]
-			somatic_score = somatic_score.split("=")[1]
-			statut = info[7].split(";")[3]
-			statut = statut.split("=")[1]
-			statut = ss_dict[statut]
-			qual = somatic_score
+			infos7 = info[7]
+			reg_SS="SS=(\d+)"
+			reg_SSC="SSC=(\d+)"
+			ss = re.search(reg_SS,infos7).group(1) if re.search(reg_SS,infos7) else None
+			statut = ss_dict[ss]
+			ssc = re.search(reg_SSC,infos7).group(1) if re.search(reg_SSC,infos7) else None
+			qual = ssc
 			filt = statut
 			snvs[chrid] = {}
 			snvs[chrid]['ad_normal']=ad_sample_normal
 			snvs[chrid]['ad_tumor']=ad_sample_tumor	
 			snvs[chrid]['qual']=qual
 			snvs[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index("TUMOR")
+				ind_normal = header.index("NORMAL")
 
 	return {'snvs':snvs}
 
@@ -170,10 +201,10 @@ def parse_VarDictSNV(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample_normal = info[9].split(":")[1]
-			ad_sample_tumor = info[10].split(":")[1]
+			ad_sample_normal = info[ind_normal].split(":")[5]
+			ad_sample_tumor = info[ind_tumor].split(":")[5]
 			status = info[7]
-			status = status.split(";")[10]
+			status = status.split(";")[0]
 			status = status.split("=")[1]
 			qual = info[5]
 			filt = status
@@ -182,6 +213,11 @@ def parse_VarDictSNV(vcf):
 			snvs[chrid]['ad_tumor']=ad_sample_tumor			
 			snvs[chrid]['qual']=qual
 			snvs[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+				ind_normal = header.index(args.normal)
 
 	return {'snvs':snvs}
 
@@ -193,8 +229,8 @@ def parse_Mutect2SNV(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample_normal = info[9].split(":")[1]
-			ad_sample_tumor = info[10].split(":")[1]
+			ad_sample_normal = info[ind_normal].split(":")[1]
+			ad_sample_tumor = info[ind_tumor].split(":")[1]
 			qual = info[5]
 			filt = info[6]
 			val = info[7]
@@ -206,6 +242,11 @@ def parse_Mutect2SNV(vcf):
 			snvs[chrid]['ad_tumor']=ad_sample_tumor			
 			snvs[chrid]['qual']=qual
 			snvs[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+				ind_normal = header.index(args.normal)
 
 	return {'snvs':snvs}
 
@@ -220,7 +261,7 @@ def parse_LoFreqSNV(vcf):
 			qual = info[5]
 			filt = info[6]
 			val = info[7]
-			DP4 = val.split(";")[2]
+			DP4 = val.split(";")[3]
 			DP4 = DP4.split("=")[1]
 			DP4 = DP4.split(",")
 			ref_count = int(DP4[0]) + int(DP4[1])
@@ -279,8 +320,8 @@ def parse_LancetSNV(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample_normal = info[9].split(":")[1]
-			ad_sample_tumor = info[10].split(":")[1]
+			ad_sample_normal = info[ind_normal].split(":")[1]
+			ad_sample_tumor = info[ind_tumor].split(":")[1]
 			qual = info[5]
 			filt = info[6]
 			snvs[chrid] = {}
@@ -288,6 +329,11 @@ def parse_LancetSNV(vcf):
 			snvs[chrid]['ad_tumor']=ad_sample_tumor			
 			snvs[chrid]['qual']=qual
 			snvs[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+				ind_normal = header.index(args.normal)
 	
 	return {'snvs':snvs}
 
@@ -308,6 +354,11 @@ def parse_ShimmerSNV(vcf):
 			snvs[chrid]['ad_tumor']=ad_sample_tumor			
 			snvs[chrid]['qual']=qual
 			snvs[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index("TUMOR")
+				ind_normal = header.index("NORMAL")
 
 	return {'snvs':snvs}
 
@@ -402,7 +453,7 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 	sf.write("%s\n" %("##FORMAT=<ID=ADLA,Number=R,Type=Integer,Description=\"Allelic depths reported by Lancet for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADSH,Number=R,Type=Integer,Description=\"Allelic depths reported by Shimmer for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADVI,Number=R,Type=Integer,Description=\"Allelic depths reported by Virmid for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('#CHROM', 'POS','ID', 'REF', 'ALT','QUAL', 'FILTER', 'INFO','FORMAT', "NORMAL", "TUMOR"))
+	sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('#CHROM', 'POS','ID', 'REF', 'ALT','QUAL', 'FILTER', 'INFO','FORMAT', "TUMOR", "NORMAL"))
 
 	all_snvs = sorted(set(all_snvs))
 	
@@ -651,6 +702,11 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 
 			if nb_callers_pass > 0 : 
 				vaf_tumor = round(numpy.nanmedian(af_tumor),4) * 100
+				if snv == "chrX\t76940077\tG\tA" :
+					print(mutect_snv['snvs'][snv])
+					print(mutect2_snv['snvs'][snv])
+					print(callers)
+					print(af_tumor)
 				vaf_normal = round(numpy.nanmedian(af_normal),4) * 100
 				callers = callers[:-1]
 				if vaf_tumor < 5 :
@@ -668,7 +724,7 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 				qual=nb_callers_pass
 				vcfinfolist=vcfinfo[called_by[0]].split("\t")
 				baseinfo=vcfinfolist[0]+'\t'+vcfinfolist[1]+'\t.\t'+vcfinfolist[2]+'\t'+vcfinfolist[3]
-				sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(baseinfo,qual, filt, info, format, gf_normal, gf_tumor))
+				sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(baseinfo,qual, filt, info, format, gf_tumor, gf_normal))
 		else :
 			print("Conflict in ref and alt alleles between callers at pos "+snv)
 
@@ -687,6 +743,8 @@ parser.add_argument('--Strelka', type=str, required=False)
 parser.add_argument('--VarDict', type=str, required=False)
 parser.add_argument('--VarScan2', type=str, required=False)
 parser.add_argument('--Virmid', type=str, required=False)
+parser.add_argument('--tumor', type=str, required=True)
+parser.add_argument('--normal', type=str, required=True)
 parser.add_argument('-N',type=int, required=True, help="Number of vote to be concordant")
 parser.add_argument('output', type=str)
 args = parser.parse_args()

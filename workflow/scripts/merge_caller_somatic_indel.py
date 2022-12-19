@@ -20,21 +20,6 @@ def read_vcf(path):
         sep='\t'
     ).rename(columns={'#CHROM': 'CHROM'})
 
-
-def parse_pindel(vcf):
-	indels = {}
-	datacolumn = {}
-	for line in open(vcf, 'r'):
-		line=line.strip()
-		if not line.startswith("#"):
-			info=line.split("\t")
-			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample = info[9].split(":")[1]
-			indels[chrid] = {}
-			indels[chrid]['ad']=ad_sample			
-
-	return {'indels':indels}
-
 def parse_FreeBayesindels(vcf):
 	indels = {}
 	datacolumn = {}
@@ -43,8 +28,8 @@ def parse_FreeBayesindels(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample_normal = info[9].split(":")[1]
-			ad_sample_tumor = info[10].split(":")[1]
+			ad_sample_normal = info[ind_normal].split(":")[2]
+			ad_sample_tumor = info[ind_tumor].split(":")[2]
 			qual = info[5]
 			filt = info[6]
 			indels[chrid] = {}
@@ -52,6 +37,11 @@ def parse_FreeBayesindels(vcf):
 			indels[chrid]['ad_tumor']=ad_sample_tumor			
 			indels[chrid]['qual']=qual
 			indels[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+				ind_normal = header.index(args.normal)
 
 	return {'indels':indels}
 
@@ -64,24 +54,30 @@ def parse_VarScan2indels(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			rd_normal = info[9].split(":")[3]
-			ad_normal = info[9].split(":")[4]
+			rd_normal = info[ind_normal].split(":")[3]
+			ad_normal = info[ind_normal].split(":")[4]
 			ad_sample_normal = rd_normal + "," + ad_normal
-			rd_tumor = info[10].split(":")[3]
-			ad_tumor = info[10].split(":")[4]
+			rd_tumor = info[ind_tumor].split(":")[3]
+			ad_tumor = info[ind_tumor].split(":")[4]
 			ad_sample_tumor = rd_tumor + "," + ad_tumor
-			somatic_score = info[7].split(";")[4]
-			somatic_score = somatic_score.split("=")[1]
-			statut = info[7].split(";")[3]
-			statut = statut.split("=")[1]
-			statut = ss_dict[statut]
-			qual = somatic_score
+			infos7 = info[7]
+			reg_SS="SS=(\d+)"
+			reg_SSC="SSC=(\d+)"
+			ss = re.search(reg_SS,infos7).group(1) if re.search(reg_SS,infos7) else None
+			statut = ss_dict[ss]
+			ssc = re.search(reg_SSC,infos7).group(1) if re.search(reg_SSC,infos7) else None
+			qual = ssc
 			filt = statut
 			indels[chrid] = {}
 			indels[chrid]['ad_normal']=ad_sample_normal
 			indels[chrid]['ad_tumor']=ad_sample_tumor	
 			indels[chrid]['qual']=qual
 			indels[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index("TUMOR")
+				ind_normal = header.index("NORMAL")
 
 	return {'indels':indels}
 
@@ -94,10 +90,10 @@ def parse_VarDictindels(vcf):
 			info=line.split("\t")
 			if info[4] != "<DEL>" and info[4] != "<INV>" and info[4] != "<DUP>" :
 				chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-				ad_sample_normal = info[9].split(":")[1]
-				ad_sample_tumor = info[10].split(":")[1]
+				ad_sample_normal = info[ind_normal].split(":")[5]
+				ad_sample_tumor = info[ind_tumor].split(":")[5]
 				status = info[7]
-				status = status.split(";")[10]
+				status = status.split(";")[0]
 				status = status.split("=")[1]
 				qual = info[5]
 				filt = status
@@ -106,6 +102,11 @@ def parse_VarDictindels(vcf):
 				indels[chrid]['ad_tumor']=ad_sample_tumor			
 				indels[chrid]['qual']=qual
 				indels[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+				ind_normal = header.index(args.normal)
 
 
 	return {'indels':indels}
@@ -118,8 +119,8 @@ def parse_Mutect2indels(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample_normal = info[9].split(":")[1]
-			ad_sample_tumor = info[10].split(":")[1]
+			ad_sample_normal = info[ind_normal].split(":")[1]
+			ad_sample_tumor = info[ind_tumor].split(":")[1]
 			qual = info[5]
 			filt = info[6]
 			val = info[7]
@@ -131,6 +132,11 @@ def parse_Mutect2indels(vcf):
 			indels[chrid]['ad_tumor']=ad_sample_tumor			
 			indels[chrid]['qual']=qual
 			indels[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+				ind_normal = header.index(args.normal)
 
 	return {'indels':indels}
 
@@ -145,7 +151,7 @@ def parse_LoFreqindels(vcf):
 			qual = info[5]
 			filt = info[6]
 			val = info[7]
-			DP4 = val.split(";")[2]
+			DP4 = val.split(";")[3]
 			DP4 = DP4.split("=")[1]
 			DP4 = DP4.split(",")
 			ref_count = int(DP4[0]) + int(DP4[1])
@@ -168,8 +174,8 @@ def parse_Pindelindels(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_tumor = info[10].split(":")[4]
-			ad_normal = info[9].split(":")[4]
+			ad_tumor = info[ind_tumor].split(":")[4]
+			ad_normal = info[ind_normal].split(":")[4]
 			qual = info[5]
 			filt = info[6]
 			indels[chrid] = {}
@@ -177,6 +183,11 @@ def parse_Pindelindels(vcf):
 			indels[chrid]['ad_tumor']=ad_tumor			
 			indels[chrid]['qual']=qual
 			indels[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index("TUMOR")
+				ind_normal = header.index("NORMAL")
 
 	return {'indels':indels}
 
@@ -188,8 +199,8 @@ def parse_Scalpelindels(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_normal = info[9].split(":")[1]
-			ad_tumor = info[10].split(":")[1]
+			ad_normal = info[ind_normal].split(":")[1]
+			ad_tumor = info[ind_tumor].split(":")[1]
 			qual = info[5]
 			filt = info[6]
 			indels[chrid] = {}
@@ -197,6 +208,11 @@ def parse_Scalpelindels(vcf):
 			indels[chrid]['ad_tumor']=ad_tumor			
 			indels[chrid]['qual']=qual
 			indels[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+				ind_normal = header.index(args.normal)
 
 	return {'indels':indels}
 
@@ -220,6 +236,11 @@ def parse_Strelkaindels(vcf):
 			indels[chrid]['ad_tumor']=ad_sample_tumor			
 			indels[chrid]['qual']=somatic_evs
 			indels[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index("TUMOR")
+				ind_normal = header.index("NORMAL")
 
 	return {'indels':indels}
 
@@ -268,8 +289,8 @@ def parse_Lancetindels(vcf):
 		if not line.startswith("#"):
 			info=line.split("\t")
 			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
-			ad_sample_normal = info[9].split(":")[1]
-			ad_sample_tumor = info[10].split(":")[1]
+			ad_sample_normal = info[ind_normal].split(":")[1]
+			ad_sample_tumor = info[ind_tumor].split(":")[1]
 			qual = info[5]
 			filt = info[6]
 			indels[chrid] = {}
@@ -277,6 +298,11 @@ def parse_Lancetindels(vcf):
 			indels[chrid]['ad_tumor']=ad_sample_tumor			
 			indels[chrid]['qual']=qual
 			indels[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+				ind_normal = header.index(args.normal)
 	
 	return {'indels':indels}
 
@@ -339,7 +365,7 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 	sf.write("%s\n" %("##FORMAT=<ID=ADVC,Number=R,Type=Integer,Description=\"Allelic depths reported by Vardict for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADVS2,Number=R,Type=Integer,Description=\"Allelic depths reported by Varscan2 for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADLA,Number=R,Type=Integer,Description=\"Allelic depths reported by Lancet for the ref and alt alleles in the order listed\">"))
-	sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('#CHROM', 'POS','ID', 'REF', 'ALT','QUAL', 'FILTER', 'INFO','FORMAT', "NORMAL", "TUMOR"))
+	sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('#CHROM', 'POS','ID', 'REF', 'ALT','QUAL', 'FILTER', 'INFO','FORMAT', "TUMOR", "NORMAL"))
 	all_indels = sorted(set(all_indels))
 	for indels in all_indels :
 		vcfinfo = {}
@@ -556,7 +582,7 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 				qual=nb_callers_pass
 				vcfinfolist=vcfinfo[called_by[0]].split("\t")
 				baseinfo=vcfinfolist[0]+'\t'+vcfinfolist[1]+'\t.\t'+vcfinfolist[2]+'\t'+vcfinfolist[3]
-				sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(baseinfo,qual, filt, info, format, gf_normal, gf_tumor))
+				sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(baseinfo,qual, filt, info, format, gf_tumor, gf_normal))
 		else :
 			print("Conflict in ref and alt alleles between callers at pos "+indels)
 
@@ -571,6 +597,8 @@ parser.add_argument('--Seurat', type=str, required=False)
 parser.add_argument('--Strelka', type=str, required=False)
 parser.add_argument('--VarDict', type=str, required=False)
 parser.add_argument('--VarScan2', type=str, required=False)
+parser.add_argument('--tumor', type=str, required=True)
+parser.add_argument('--normal', type=str, required=True)
 parser.add_argument('-N',type=int, required=True, help="Number of vote to be concordant")
 parser.add_argument('output', type=str)
 args = parser.parse_args()
