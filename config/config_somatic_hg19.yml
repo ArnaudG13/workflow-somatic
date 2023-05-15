@@ -25,37 +25,42 @@
     map_file: "/shared/projects/pmngs/human_genome_hg19/annot/hg19_chr.map"
     exac_common: "/shared/projects/pmngs/human_genome_hg19/annot/somatic-hg19_small_exac_common_3.vcf"
     gnomad_af_only: "/shared/projects/pmngs/human_genome_hg19/annot/somatic-hg19_af-only-gnomad.raw.sites.vcf.gz"
-    pon: "/shared/projects/pmngs/human_genome_hg19/annot/pon_impact.vcf.gz"
+    pon: "/shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY/pon.vcf.gz"
     gc_file: "/shared/projects/pmngs/human_genome_hg19/annot/hg19.gc50Base.wig.gz"
 
   metadata:
-    design: "/shared/projects/pmngs/projet_seq/benchmark/NA12878/nexterarapidcapture_exome_targetedregions.bed"
-    design_name: "WES"
+    design: "/shared/projects/pmngs/human_genome_hg19/annot/SureSelect_XTHS_All_Exon_V8_covered.bed"
+    design_name: "Exome_V8"
     seq_type: "pe"
-    analysis_sheet : "/shared/projects/pmngs/projet_seq/benchmark/analysis_sheet.csv"
-    date: "22-04-19"
+    analysis_sheet : "/shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY/samples.tsv"
+    date: "23-05-06"
     center: "IPC"
     platform: "illumina"
     application: "Target"
     microsat: "/shared/projects/pmngs/human_genome_hg19/annot/microsatellites.list"
 
   dir:
-    base: "/shared/projects/pmngs/projet_seq/benchmark"
+    base: "/shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY"
     fastq_dir: "fastq"
 
   tools:
     paired: "1"
-    trimming: "1"
+    trimming: "0"
     molecular_barcode: "0"
     uniq : "0"
     dedup : "1"
     ffpe : "0"
     mapping: "bwamem"
     sv_calling: ""
-    snv_calling_somatic: ['FreeBayes', 'Lancet', 'LoFreq', 'Muse', 'Mutect', 'Mutect2', 'Seurat', 'Shimmer', 'SomaticSniper', 'Strelka', 'VarDict', 'VarScan2', 'Virmid']
-    indel_calling_somatic: ['FreeBayes', 'Lancet', 'LoFreq', 'Mutect2', 'pindel', 'Seurat', 'Scalpel', 'Strelka', 'VarDict', 'VarScan2']
-    snv_calling_germline: ['FreeBayes', 'HaplotypeCaller','Pisces','Platypus','Strelka','VarScan2']
-    indel_calling_germline: ['FreeBayes', 'HaplotypeCaller', 'pindel', 'Pisces', 'Platypus', 'Scalpel', 'Strelka', 'Strelka', 'VarScan2']
+    snv_calling_somatic: ['Mutect2']
+    indel_calling_somatic: ['Mutect2']
+    snv_calling_germline: ['Strelka']
+    indel_calling_germline: ['Strelka']
+    n_concordant_somatic_snv: 0
+    n_concordant_somatic_indel: 0
+    n_concordant_germline_snv: 0
+    n_concordant_germline_indel: 0
+    create_pon: "1"
   gatk:
       jar : "/shared/home/aguille/GenomeAnalysisTK.jar"
 

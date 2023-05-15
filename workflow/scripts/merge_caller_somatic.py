@@ -702,11 +702,6 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 
 			if nb_callers_pass > 0 : 
 				vaf_tumor = round(numpy.nanmedian(af_tumor),4) * 100
-				if snv == "chrX\t76940077\tG\tA" :
-					print(mutect_snv['snvs'][snv])
-					print(mutect2_snv['snvs'][snv])
-					print(callers)
-					print(af_tumor)
 				vaf_normal = round(numpy.nanmedian(af_normal),4) * 100
 				callers = callers[:-1]
 				if vaf_tumor < 5 :

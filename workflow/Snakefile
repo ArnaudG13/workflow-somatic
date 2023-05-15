@@ -166,6 +166,11 @@ else :
         sys.exit("%s does not exist"%config["metadata"]["design"])
     print("Region Bed file : %s"%config["metadata"]["design"])
 
+#Check target gz and tbi for StrelkaSomatic
+if "Strelka" in config["tools"]["snv_calling_somatic"] or "Strelka" in config["tools"]["indel_calling_somatic"] :
+    if not os.path.exists(config["metadata"]["design"]+".gz") or not os.path.exists(config["metadata"]["design"]+".gz.tbi") :
+        sys.exit("Please index design bed file with bgzip and tabix")
+
 #Check microsat file
 if not "microsat" in config["metadata"].keys() :
     sys.exit("Missing parameters microsat")
@@ -416,6 +421,36 @@ if config["tools"]["indel_calling_somatic"] == "All" :
 else :
     vc_list_indel_somatic = config["tools"]["indel_calling_somatic"]
 
+if not "n_concordant_somatic_snv" in config["tools"].keys() :
+    n_concordant_somatic_snv = 4
+else :
+    n_concordant_somatic_snv = config["tools"]["n_concordant_somatic_snv"]
+
+if not "n_concordant_somatic_indel" in config["tools"].keys() :
+    n_concordant_somatic_indel = 4
+else :
+    n_concordant_somatic_indel = config["tools"]["n_concordant_somatic_indel"]
+
+
+if not "n_concordant_germline_snv" in config["tools"].keys() :
+    n_concordant_germline_snv = 3
+else :
+    n_concordant_germline_snv = config["tools"]["n_concordant_germline_snv"]
+
+
+if not "n_concordant_germline_indel" in config["tools"].keys() :
+    n_concordant_germline_indel = 4
+else :
+    n_concordant_germline_indel = config["tools"]["n_concordant_germline_indel"]
+
+if not "create_pon" in config["tools"] :
+    create_pon = False
+else :
+    if config["tools"]["create_pon"] == "1" :
+        create_pon = True
+    else :
+        create_pon = False
+
 
 fastq_dir = config["dir"]["base"] + "/" + config["dir"]["fastq_dir"]
 
@@ -497,6 +532,7 @@ CROSS_CHECK_FINGERPRINTS = []
 MAPPING=expand(config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",zip,sample=samples["samples"],seq_type=samples["type"],seq_name=SEQ_LIST)
 QC=expand(config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/{seq_name}.bam.qc",zip,sample=samples["samples"], seq_type=samples["type"] ,seq_name=SEQ_LIST)
 MERGE_QC=config["dir"]["base"]+output_analysis+"/bam.stats"
+MUTECT2_PON=expand(config["dir"]["base"]+"/{sample}/Normal/Mutect2/{seq_name}.Mutect2.for.pon.vcf.gz",zip,sample=samples["samples"][samples["type"]=="Normal"],seq_name=SAMPLES_NORMAL)
 GERMLINE_SNP_ANNOT=expand(config["dir"]["base"]+"/{sample}/Normal/{seq_name}.germline.snv.result",zip,sample=samples["samples"][samples["type"]=="Normal"],seq_name=SAMPLES_NORMAL)
 HLA_TYPE=expand(config["dir"]["base"]+"/{sample}/Normal/Optitype/{seq_name}_result.tsv",zip,sample=samples["samples"][samples["type"]=="Normal"],seq_name=SAMPLES_NORMAL)
 GERMLINE_INDEL_ANNOT=expand(config["dir"]["base"]+"/{sample}/Normal/{seq_name}.germline.indel.result",zip,sample=samples["samples"][samples["type"]=="Normal"],seq_name=SAMPLES_NORMAL)
@@ -512,7 +548,7 @@ for sample in SAMPLES :
     SOMATIC_INDEL_ANNOT = SOMATIC_INDEL_ANNOT + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.somatic.indel.result",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]],seq_name=SAMPLES_TUMOR_DICT[sample])
     SOMATIC_SV = SOMATIC_SV + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}_allSVFiltered_functional.txt",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]],seq_name=SAMPLES_TUMOR_DICT[sample])
     MSI_STATUT = MSI_STATUT + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.msi",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample])
-    SEQUENZA = SEQUENZA + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}_segments.txt",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample])
+    SEQUENZA = SEQUENZA + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.bin50.gz_segments.txt",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample])
     CROSS_CHECK_FINGERPRINTS = CROSS_CHECK_FINGERPRINTS + expand(config["dir"]["base"]+"/{sample}/{seq_name}.crosscheck_metrics",sample=sample, seq_name=SAMPLES_TUMOR_DICT[sample])
 
 
@@ -521,6 +557,7 @@ MERGE_INDEL_SOMATIC=config["dir"]["base"]+"/somatic.indel.filtered.txt"
 IMPORT_SNV_SOMATIC=config["dir"]["base"]+output_analysis+"/somatic.snv.import.csv"
 IMPORT_INDEL_SOMATIC=config["dir"]["base"]+output_analysis+"/somatic.indel.import.csv"
 MERGE_MSI=config["dir"]["base"]+output_analysis+"/merge.msi"
+
 
 # MERGE_SV_SOMATIC=config["dir"]["base"]+"/somatic.sv.filtered.txt",
 # FUNCOTATOR=expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/Funcotator/{seq_name}_vs_{normal}.variants.funcotated.maf",zip,tumor=TUMOR, normal=NORMAL,seq_name=SAMPLES_TUMOR)
@@ -705,16 +742,17 @@ if config["tools"]["sv_calling"] == "Delly" :
 else :
     rule all :
         input:
-            MAPPING,
-            QC,
+            #MAPPING,
+            #QC,
             #QC_NORMAL,
             #QC_TUMOR,
             #COV_NORMAL,
             #COV_TUMOR,
             #MSI_STATUT,
+            #MUTECT2_PON,
             #GERMLINE_SNP_ANNOT,
             #GERMLINE_INDEL_ANNOT,
-            #HLA_TYPE,
+            HLA_TYPE,
             #SOMATIC_VC_SNV,
             #SOMATIC_VC_INDEL,
             #SOMATIC_SNV_ANNOT,
@@ -726,13 +764,13 @@ else :
             #MERGE_INDEL_GERMLINE,
             #SEQUENZA,
             #CN,
-            CROSS_CHECK_FINGERPRINTS,
-            IMPORT_SNV_SOMATIC,
-            IMPORT_INDEL_SOMATIC,
-            IMPORT_SNV_GERMLINE,
-            IMPORT_INDEL_GERMLINE,
-            MERGE_QC,
-            MERGE_MSI
+            #CROSS_CHECK_FINGERPRINTS,
+            #IMPORT_SNV_SOMATIC,
+            #IMPORT_INDEL_SOMATIC,
+            #IMPORT_SNV_GERMLINE,
+            #IMPORT_INDEL_GERMLINE,
+            #MERGE_QC,
+            #MERGE_MSI
 
 
 #Trim Fastq
@@ -1932,6 +1970,33 @@ rule vt_pindelGerm :
         /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - > {output}
         """
 
+rule Mutect2Germ:
+    input:
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        ref=config["genome"]["fasta_file"],
+        target=config["metadata"]["design"],
+        gnomad=config["genome"]["gnomad_af_only"]
+    output:
+        vcf=output_dir+"/{sample}/Normal/Mutect2/{seq_name}.Mutect2.for.pon.vcf.gz"
+    container:
+        "docker://broadinstitute/gatk:4.2.2.0"
+    shell:"""
+        # Mutect2 Germline
+        file_name=$(basename {input.bam})
+		name=${{file_name%.sort*}}
+        gatk Mutect2 \
+        --java-options -Xmx16G \
+        --native-pair-hmm-threads 8 \
+        -max-mnp-distance 0 \
+        --reference {input.ref} \
+        -I {input.bam} \
+        -tumor $name \
+        -germline-resource {input.gnomad} \
+        -L {input.target} \
+        -O {output.vcf}
+        """
+
 #Run MSI analysis
 rule msisensor:
     input:
@@ -3108,11 +3173,12 @@ rule merge_snv_caller_germline :
         "docker://ngsom/tumorseq"
     params:
         base_dir=output_dir,
-        args=input_germline_snv_params
+        args=input_germline_snv_params,
+        n=n_concordant_germline_snv
     shell:
         """
         source activate utils
-        workflow/scripts/merge_caller_germline.py {params.args} -N 3 {output}
+        workflow/scripts/merge_caller_germline.py {params.args} -N {params.n} {output}
         """
 
 rule merge_indel_caller_germline :
@@ -3124,11 +3190,12 @@ rule merge_indel_caller_germline :
         "docker://ngsom/tumorseq"
     params:
         base_dir=output_dir,
-        args=input_germline_indel_params
+        args=input_germline_indel_params,
+        n=n_concordant_germline_indel
     shell:
         """
         source activate utils
-        workflow/scripts/merge_caller_indel_germline.py {params.args} -N 4 {output}
+        workflow/scripts/merge_caller_indel_germline.py {params.args} -N {params.n} {output}
         """
 
 #Merge vcf SNP Germline
@@ -3141,11 +3208,12 @@ rule merge_snv_caller_somatic :
         "docker://ngsom/tumorseq"
     params:
         base_dir=output_dir,
-        args=input_somatic_snv_params
+        args=input_somatic_snv_params,
+        n=n_concordant_somatic_snv
     shell:
         """
         source activate utils
-        workflow/scripts/merge_caller_somatic.py {params.args} --tumor {wildcards.seq_name} --normal {wildcards.normal} -N 4 {output}
+        workflow/scripts/merge_caller_somatic.py {params.args} --tumor {wildcards.seq_name} --normal {wildcards.normal} -N {params.n} {output}
         """
 
 rule merge_indel_caller_somatic :
@@ -3157,11 +3225,12 @@ rule merge_indel_caller_somatic :
         "docker://ngsom/tumorseq"
     params:
         base_dir=output_dir,
-        args=input_somatic_indel_params
+        args=input_somatic_indel_params,
+        n=n_concordant_somatic_indel
     shell:
         """
         source activate utils
-        workflow/scripts/merge_caller_somatic_indel.py {params.args} --tumor {wildcards.seq_name} --normal {wildcards.normal} -N 4 {output}
+        workflow/scripts/merge_caller_somatic_indel.py {params.args} --tumor {wildcards.seq_name} --normal {wildcards.normal} -N {params.n} {output}
         """
 
 rule filter_snv_germline :
@@ -3279,7 +3348,7 @@ rule sequenza :
     input:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.bin50.gz"
     output:
-        config["dir"]["base"]+"/{sample}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}_segments.txt"
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.bin50.gz_segments.txt"
     container:
         "docker://ngsom/bioconductor"
     params:

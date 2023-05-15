@@ -412,7 +412,7 @@ if args.pindel is not None :
 	pindel_indels = parse_Pindelindels(args.pindel)
 	n_vc = n_vc + 1
 else :
-	hc_indels = None
+	pindel_indels = None
 
 if args.Pisces is not None :
 	pisces_indels = parse_Piscesindels(args.Pisces)

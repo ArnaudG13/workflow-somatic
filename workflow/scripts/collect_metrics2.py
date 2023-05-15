@@ -51,7 +51,8 @@ nb_reads = nb_reads.replace(",","")
 nb_reads = nb_reads.replace(" ","")
 
 percent_nb_reads_keep = round(((float(nb_reads)/nb_reads_tot)*100),2)
-format_nb_reads = str(nb_reads) + "/" + str(nb_reads_tot) + " (" + str(percent_nb_reads_keep) + "%)"
+#format_nb_reads = str(nb_reads) + "/" + str(nb_reads_tot) + " (" + str(percent_nb_reads_keep) + "%)"
+format_nb_reads = str(nb_reads)
 
 #compute mean of coverage uniformity
 

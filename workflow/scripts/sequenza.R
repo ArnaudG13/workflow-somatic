@@ -11,6 +11,7 @@ out_dir = args[2]
 
 sample_name = gsub("(.*).bin50.seqz.gz","\\1",basename(in_file))
 
+setwd(out_dir)
 dat = sequenza.extract(in_file, verbose=FALSE)
 fit = sequenza.fit(dat)
 sequenza.results(sequenza.extract = dat, cp.table=fit, sample.id=sample_name, out.dir=out_dir)
