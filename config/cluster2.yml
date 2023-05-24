@@ -230,6 +230,13 @@
     stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
     stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
 
+  multiQC :
+    host : "1"
+    core : "1"
+    time : "4:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
   mergeMSI :
     host : "1"
     core : "1"

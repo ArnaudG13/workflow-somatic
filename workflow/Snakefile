@@ -557,6 +557,7 @@ MERGE_INDEL_SOMATIC=config["dir"]["base"]+"/somatic.indel.filtered.txt"
 IMPORT_SNV_SOMATIC=config["dir"]["base"]+output_analysis+"/somatic.snv.import.csv"
 IMPORT_INDEL_SOMATIC=config["dir"]["base"]+output_analysis+"/somatic.indel.import.csv"
 MERGE_MSI=config["dir"]["base"]+output_analysis+"/merge.msi"
+MULTI_QC=config["dir"]["base"]+output_analysis+"/multiqc_report.html"
 
 
 # MERGE_SV_SOMATIC=config["dir"]["base"]+"/somatic.sv.filtered.txt",
@@ -752,7 +753,7 @@ else :
             #MUTECT2_PON,
             #GERMLINE_SNP_ANNOT,
             #GERMLINE_INDEL_ANNOT,
-            HLA_TYPE,
+            #HLA_TYPE,
             #SOMATIC_VC_SNV,
             #SOMATIC_VC_INDEL,
             #SOMATIC_SNV_ANNOT,
@@ -770,7 +771,8 @@ else :
             #IMPORT_SNV_GERMLINE,
             #IMPORT_INDEL_GERMLINE,
             #MERGE_QC,
-            #MERGE_MSI
+            #MERGE_MSI,
+            MULTI_QC
 
 
 #Trim Fastq
@@ -3582,7 +3584,8 @@ rule qualimap:
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"],
     output:
-        config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/qualimapReport.html"
+        config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/qualimapReport.html",
+        config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/raw_data_qualimapReport",
     params:
         base_dir=output_dir
     container:
@@ -3739,6 +3742,23 @@ rule mergeGermlineINDELResult :
         rm {params.base_dir}/germline.indel.txt || error_exit 'rm failed'
         rm {params.base_dir}/germline.indel.sort.txt || error_exit 'rm failed'
         rm {params.base_dir}/germline.indel.prio.txt || error_exit 'rm failed'
+        """
+
+#Merge QC result
+rule multiQC :
+    input:
+        qualimap=expand(config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/raw_data_qualimapReport",zip,sample=samples["samples"],seq_type=samples["type"],seq_name=SEQ_LIST),
+        hs_metrics=expand(config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/{seq_name}.Hsmetrics",zip,sample=samples["samples"],seq_type=samples["type"],seq_name=SEQ_LIST)
+    output:
+        config["dir"]["base"]+output_analysis+"/multiqc_report.html"
+    container:
+        "docker://ewels/multiqc"
+    params:
+        base_dir=output_dir,
+        out=output_dir+output_analysis
+    shell:
+        """
+        multiqc {input.qualimap} {input.hs_metrics} --outdir {params.out} --quiet
         """
 
 #Merge QC result
