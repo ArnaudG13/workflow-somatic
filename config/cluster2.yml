@@ -453,3 +453,66 @@
     stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
     stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
 
+  IntervalFilePureCN :
+    host : "1"
+    core : "1"
+    mem : "8G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  CoveragePureCN :
+    host : "1"
+    core : "1"
+    mem : "8G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  PureCN :
+    host : "1"
+    core : "1"
+    mem : "8G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.{wildcards.seq_name}.stderr"
+
+  PreprocessIntervals :
+    host : "1"
+    core : "1"
+    mem : "8G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  CreateVCFArgsForPON :
+    host : "1"
+    core : "1"
+    mem : "4G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  CreatePONForMutect2 :
+    host : "1"
+    core : "1"
+    mem : "72G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  CreateNormalVCF :
+    host : "1"
+    core : "1"
+    mem : "8G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
+
+  CreateNormalDBForPureCN :
+    host : "1"
+    core : "1"
+    mem : "8G"
+    time : "24:00:00"
+    stdout : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stdout"
+    stderr : "/shared/home/aguille/logs/cluster/snakemake/{rule}.stderr"
