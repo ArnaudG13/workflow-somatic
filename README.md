@@ -1,89 +1,64 @@
-# Titre du projet
+# Title
 
-Workflow snakemake pour l'analyse de variants somatiques et constitutionnels (SNP et INDEL), lorsque la contre-partie normale est disponible.
+A Snakemake workflow for the analysis of somatic variant (SNVs and indels) and copy number. (Tumor-normal mode).
 
-# Description du workflow
+# Description
 
-Le workflow intègre toutes les étapes essentielles d'une analyse de variants de type tumeur-normal.
-Le pipeline supporte la présence de plusieurs échantillons tumoraux pour un même patient.
+* Trimming (option)
+* Quality control
+* Alignment (BWA mem)
+* Deduplication (option)
+* BQSR (option)
+* somatic SNVs (13 callers) and indels (10 callers)
+* germline SNVs (6 callers) and indels (8 callers)
+* VCF merging and majority rule with the scripts workflow/scripts/merge_caller_somatic.py and workflow/scripts/merge_caller_somatic_indel.py
+* Variants annotations (Annovar)
 
-
-* Trimming des fichiers fastq (optionnel)
-* Controle qualité des fichiers fastq
-* Alignement des reads
-* Déduplication (optionnel)
-* Recalibration
-* Détection des SNP (13 outils au choix) et INDEL (10 outils au choix) somatiques
-* Détection des SNP (6 outils au choix) et INDEL (8 outils au choix) constitutionnels
-* Merge des fichiers VCF issus des différents outils et vote majoritaire
-* Annotation des variants
-
-### Prérequis outils
+### Dependencies
 
 * singularity >= 3.5.3 https://github.com/sylabs/singularity
 * snakemake >= 6.5.0 https://snakemake.readthedocs.io/en/stable/
 
-### Fichiers de configuration
+### Config and log files
 
-Le fichier ```config/config_somatic_hg19.yml``` contient tous les chemins vers les fichiers d'annotation, ainsi que les différentes options d'analyse.
-
-Le fichier ```config/cluster2.yml``` contient les paramètres liés au cluster de calcul.
-
-Le fichier ```config/samples.tsv``` décrit les échantillons et les fichiers fastq à analyser.
-
-###Fichier de log
-
-Par défaut les fichiers de log du cluster de calcul sont générés dans
+###Log files directory
 
  ```
-/home/guille/logs/cluster/snakemake/
+/home/user/logs/cluster/snakemake/
 ```
 
-Vous pouvez modifier le chemin de destination de ces logs dans le fichier config/cluster2.yml et créer le dossier s'il n'existe pas.
+###Cluster config file for Slurm
+
+ ```
+config/config.yaml
+```
+
+###config file for the somatic analysis (Annototation files etc ..)
+
+ ```
+config/config_somatic_hg19.yml
+```
 
 
-### Utilisation
-
-Exemple de ligne de commande sur le cluster de l'ifb (slurm) à partir du dossier principal du workflow ```workflow-somatic```
+### Usage
 
 ```
-snakemake --cores 400 -j 100 -T 3 \
---configfile /shared/projects/pmngs/projet_seq/benchmark/config_somatic_hg19.yml \
+snakemake \
+--configfile /scratch/user/my_project/config_somatic_hg19.yml \
 --use-singularity \
---singularity-prefix /shared/projects/pmngs/singularity_cache \
---cluster-config config/cluster2.yml \
---cluster "sbatch -N {cluster.host} -n {cluster.core} -t {cluster.time} --mem {cluster.mem} -o {cluster.stdout} -e {cluster.stderr}"
+--singularity-prefix /scratch/user/singularity_cache \
+--singularity-args "--bind /scratch/user/" \
+--profile slurm
 ```
 
-Exemple de ligne de commande sur le clsuter de l'ifb (slurm) :
 
-```
-nohup snakemake --cores 400 -j 100 -T 3 \
---configfile /shared/projects/pmngs/projet_seq/benchmark/config_somatic_hg19.yml \
---use-singularity \
---singularity-prefix /shared/projects/pmngs/singularity_cache \
---cluster-config config/cluster2.yml \
---cluster "sbatch -N {cluster.host} -n {cluster.core} -t {cluster.time} --mem {cluster.mem} -o {cluster.stdout} -e {cluster.stderr}"&
-```
-
-Exemple de ligne de commande sur le clsuter de l'ifb (slurm) :
-
-```
-nohup snakemake --cores 400 -j 100 -T 3 \
---configfile /shared/projects/pmngs/projet_seq/benchmark/config_somatic_hg19.yml \
---use-singularity \
---singularity-prefix /shared/projects/pmngs/singularity_cache \
---cluster-config config/cluster2.yml \
---cluster "sbatch -N {cluster.host} -n {cluster.core} -t {cluster.time} --mem {cluster.mem} -o {cluster.stdout} -e {cluster.stderr}"& > nohupoutput &
-```
-
-## Développé Avec
+## Develop with
 
 * [Python](https://www.python.org/) - Language de programmation Python
 * [bash](http://git.savannah.gnu.org/cgit/bash.git) - Language de programmation Bash
 * [snakemake](https://bitbucket.org/johanneskoester/snakemake/wiki/Home) - Gestionnaire de workflow snakemake
 
-## Auteurs
+## Author
 
 * **Arnaud Guille**
 
