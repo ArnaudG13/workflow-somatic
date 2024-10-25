@@ -64,56 +64,6 @@ else :
         fastq_dir=config["dir"]["fastq_dir"].rstrip('/')
     print("Fastq dir : %s"%config["dir"]["fastq_dir"])
 
-#Check prior file jsm
-if not "prior_file" in config["jsm"].keys() :
-    sys.exit("prior file jsm not found")
-else :
-    if not os.path.exists(config["jsm"]["prior_file"]) :
-        sys.exit("prior file jsm not found")
-
-#Check init file file jsm
-if not "init_file" in config["jsm"].keys() :
-    sys.exit("init file jsm not found")
-else :
-    if not os.path.exists(config["jsm"]["init_file"]) :
-        sys.exit("init file jsm not found")
-
-#Check conda env file
-if not os.path.exists(config["env1"]) :
-    sys.exit("Missing env yaml file")
-else:
-    env_file=config["env1"]
-
-#Check conda env file 2
-if not os.path.exists(config["env2"]) :
-    sys.exit("Missing env2 yaml file")
-else:
-    env_file2=config["env2"]
-
-#Check conda env file 2
-if not os.path.exists(config["env3"]) :
-    sys.exit("Missing env3 yaml file")
-else:
-    env_file3=config["env3"]
-
-#Check conda env file sv
-if not os.path.exists(config["env_file_sv"]) :
-    sys.exit("Missing env file sv yaml file")
-else:
-    env_file_sv=config["env_file_sv"]
-
-#Check conda env gatk file
-if not os.path.exists(config["env_file_gatk"]) :
-    sys.exit("Missing env gatk yaml file")
-else:
-    env_file_gatk=config["env_file_gatk"]
-
-#Check conda env file optitype
-if not os.path.exists(config["env_optitype"]) :
-    hla_typing = False
-else:
-    env_file_optitype=config["env_optitype"]
-
 #Check mapping tool
 if not "mapping" in config["tools"].keys() :
     sys.exit("Missing parameters mapping")
@@ -251,6 +201,17 @@ else :
         dedup_option_pisces = ""
         dedup_option_platypus = "--filterDuplicates=0" 
 
+if not "bqsr" in config["tools"].keys() :
+    bqsr=True
+    tag_process_bqsr = "recall."
+else :
+    if config["tools"]["bqsr"] == "1" :
+        bqsr=True
+        tag_process_bqsr = "recall."
+    else:
+        bqsr=False
+        tag_process_bqsr = ""
+
 if not "trimming" in config["tools"].keys() :
     sys.exit("Missing parameters trimming")
 else :
@@ -285,7 +246,7 @@ else :
 if not "application" in config["metadata"].keys() :
     sys.exit("Missing parameters application")
 else :
-    processing = tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall"
+    processing = tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr
 
 if not "version" in config["genome"].keys() :
     sys.exit("Missing parameters genome version")
@@ -363,44 +324,6 @@ if config["mutect2"]["create_pon"] == "0" :
             sys.exit("%s does not exist"%config["mutect2"]["pon"])
         print("pon : %s"%config["mutect2"]["pon"])
 
-#Check gc file
-if not "gc_file" in config["genome"].keys() :
-    sys.exit("Missing parameters gc_file")
-else :
-    if not os.path.exists(config["genome"]["gc_file"]) :
-        sys.exit("%s does not exist"%config["genome"]["gc_file"])
-    print("gc_file : %s"%config["genome"]["gc_file"])
-
-#Check iAnnotSV files
-if not os.path.exists(config["iAnnotSV"]["ref_file"]) :
-    sys.exit("Missing iAnnot rf file")
-
-if not os.path.exists(config["iAnnotSV"]["canonical_txt"]) :
-    sys.exit("Missing iAnnot canonical_txt file")
-
-if not os.path.exists(config["iAnnotSV"]["uniprot"]) :
-    sys.exit("Missing iAnnot uniprot file")
-
-if not os.path.exists(config["iAnnotSV"]["repeat_region"]) :
-    sys.exit("Missing iAnnot repeat region file")
-
-if not os.path.exists(config["iAnnotSV"]["dgv"]) :
-    sys.exit("Missing iAnnot dgv file")
-
-if not os.path.exists(config["iAnnotSV"]["cancer_census"]) :
-    sys.exit("Missing iAnnot census region file")
-
-if not os.path.exists(config["iAnnotSV"]["cosmic_fusion_count"]) :
-    sys.exit("Missing iAnnot fusion count region file")
-
-if not os.path.exists(config["iAnnotSV"]["cosmic_fusion_count"]) :
-    sys.exit("Missing iAnnot fusion count region file")
-
-if not os.path.exists(config["iAnnotSV"]["all_canonical_txt"]) :
-    sys.exit("Missing iAnnot all canonical_txt")
-
-if not os.path.exists(config["iAnnotSV"]["region_to_exclude"]) :
-    sys.exit("Missing iAnnot region_to_exclude")
 
 #GERMLINE Variant Caller used for the analysis
 if config["tools"]["snv_calling_germline"] == "All" :
@@ -523,6 +446,13 @@ else :
 if run_sequenza is True and config["genome"]["version"] != "hg19" :
     sys.exit("Sequenza must be run with hg19")
 
+#Check multiqc config
+if not "config" in config["multi_qc"].keys() :
+    sys.exit("Missing parmeters multi qc config")
+else :
+    if not os.path.exists(config["multi_qc"]["config"]) :
+        sys.exit("Missing parameters multi qc config")
+
 print(vc_list_snv_germline)
 print(vc_list_indel_germline)
 print(vc_list_snv_somatic)
@@ -556,7 +486,7 @@ samples_dict = {}
 
 samples = pd.read_table(config["metadata"]["analysis_sheet"]).set_index("samples",drop=False)
 for index, row in samples.iterrows():
-    seq_name = re.search("^([\w\-\_]+)[_S\d+]?_?[L\d{3}]?_R(\d)(_001)?\.fastq(\.gz)?$",row["fq1"]).group(1) if re.search("^([\w\-\_]+)[_S\d+]?_?[L\d{3}]?_R(\d)(_001)?\.fastq(\.gz)?$",row["fq1"]) else None
+    seq_name = re.search(r"^([\w\-\_]+)[_S\d+]?_?[L\d{3}]?_R(\d)(_001)?\.fastq(\.gz)?$",row["fq1"]).group(1) if re.search(r"^([\w\-\_]+)[_S\d+]?_?[L\d{3}]?_R(\d)(_001)?\.fastq(\.gz)?$",row["fq1"]) else None
     SEQ_LIST.append(seq_name)
     if row["samples"] in samples_dict.keys() :
         if row["type"] in samples_dict[row["samples"]].keys() :
@@ -601,10 +531,15 @@ MODEL_SEGMENTS = []
 CALLED_SEGMENTS = []
 PLOT_MODEL = []
 PURE_CN = []
+NEUSOMATIC = []
+DEEPSOMATIC = []
+VARNET = []
+TNSCOPE = []
+TNSCOPE2 = []
 
-p=re.compile("^Tumor\d+")
+p=re.compile(r"^Tumor\d+")
 
-MAPPING=expand(config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",zip,sample=samples["samples"],seq_type=samples["type"],seq_name=SEQ_LIST)
+MAPPING=expand(config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",zip,sample=samples["samples"],seq_type=samples["type"],seq_name=SEQ_LIST)
 QC=expand(config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/{seq_name}.bam.qc",zip,sample=samples["samples"], seq_type=samples["type"] ,seq_name=SEQ_LIST)
 MERGE_QC=config["dir"]["base"]+output_analysis+"/bam.stats"
 MUTECT2_PON=expand(config["dir"]["base"]+"/{sample}/Normal/Mutect2/{seq_name}.Mutect2.for.pon.vcf.gz",zip,sample=samples["samples"][samples["type"]=="Normal"],seq_name=SAMPLES_NORMAL)
@@ -632,6 +567,7 @@ if run_purecn is True :
 else :
     PURE_CN_COV=[]
 
+
 for sample in SAMPLES :
     SOMATIC_VC_SNV = SOMATIC_VC_SNV + expand(expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.{{variant_caller}}.somatic.snv.normalized.vcf",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample]),variant_caller=vc_list_snv_somatic)
     SOMATIC_VC_INDEL = SOMATIC_VC_INDEL + expand(expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/{{variant_caller}}/{seq_name}_vs_{normal}.{{variant_caller}}.somatic.indel.normalized.vcf",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample]),variant_caller=vc_list_indel_somatic)
@@ -640,7 +576,13 @@ for sample in SAMPLES :
     SOMATIC_SV = SOMATIC_SV + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}_allSVFiltered_functional.txt",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]],seq_name=SAMPLES_TUMOR_DICT[sample])
     MSI_STATUT = MSI_STATUT + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.msi",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample])
     CROSS_CHECK_FINGERPRINTS = CROSS_CHECK_FINGERPRINTS + expand(config["dir"]["base"]+"/{sample}/{seq_name}.crosscheck_metrics",sample=sample, seq_name=SAMPLES_TUMOR_DICT[sample])
-    
+    #NEUSOMATIC = NEUSOMATIC + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/NeuSomatic/{seq_name}_vs_{normal}.NeuSomatic.somatic.snv.normalized.vcf",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample])
+    #DEEPSOMATIC = DEEPSOMATIC + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/DeepSomatic/{seq_name}_vs_{normal}.DeepSomatic.somatic.snv.normalized.vcf",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample])
+    #VARNET = VARNET + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarNet/{seq_name}_vs_{normal}.VarNet.somatic.snv.normalized.vcf",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample])
+    TNSCOPE = TNSCOPE + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope/{seq_name}_vs_{normal}.TNScope.somatic.snv.normalized.vcf",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample])
+    TNSCOPE2 = TNSCOPE2 + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope2/{seq_name}_vs_{normal}.TNScope.somatic.snv.filtered.normalized.vcf",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample])
+
+
     if run_sequenza is True :
         SEQUENZA = SEQUENZA + expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.bin50.gz_segments.txt",sample=sample, normal=combined_samples[SAMPLES_TUMOR_DICT[sample][0]] ,seq_name=SAMPLES_TUMOR_DICT[sample])
     
@@ -779,7 +721,7 @@ def fastqc_output_zip(wildcards):
 def get_tumor_bam(wildcards):
     tumor_seq = wildcards.seq_name
     seq_type =samples_type_dict[tumor_seq]
-    return [config["dir"]["base"]+"/"+wildcards.sample+"/"+seq_type+"/"+tumor_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",config["dir"]["base"]+"/"+wildcards.sample+"/"+seq_type+"/"+tumor_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai"]
+    return [config["dir"]["base"]+"/"+wildcards.sample+"/"+seq_type+"/"+tumor_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",config["dir"]["base"]+"/"+wildcards.sample+"/"+seq_type+"/"+tumor_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai"]
 
 
 #get input tumor normal bam files
@@ -787,13 +729,13 @@ def get_paired_samples(wildcards):
     tumor_seq = wildcards.seq_name
     normal_seq = combined_samples[tumor_seq]
     seq_type =samples_type_dict[tumor_seq]
-    return [config["dir"]["base"]+"/"+wildcards.sample+"/"+seq_type+"/"+tumor_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",config["dir"]["base"]+"/"+wildcards.sample+"/"+"Normal"+"/"+normal_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam"]
+    return [config["dir"]["base"]+"/"+wildcards.sample+"/"+seq_type+"/"+tumor_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",config["dir"]["base"]+"/"+wildcards.sample+"/"+"Normal"+"/"+normal_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",config["dir"]["base"]+"/"+wildcards.sample+"/"+seq_type+"/"+tumor_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",config["dir"]["base"]+"/"+wildcards.sample+"/"+"Normal"+"/"+normal_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai"]
 
 def get_filter_paired_samples(wildcards):
     tumor_seq = wildcards.seq_name
     normal_seq = combined_samples[tumor_seq]
     seq_type =samples_type_dict[tumor_seq] 
-    return [config["dir"]["base"]+"/"+wildcards.sample+"/"+seq_type+"/"+tumor_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall.filter."+"bam",config["dir"]["base"]+"/"+wildcards.sample+"/"+"Normal"+"/"+normal_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall.filter."+"bam"]
+    return [config["dir"]["base"]+"/"+wildcards.sample+"/"+seq_type+"/"+tumor_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"filter."+"bam",config["dir"]["base"]+"/"+wildcards.sample+"/"+"Normal"+"/"+normal_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"filter."+"bam",config["dir"]["base"]+"/"+wildcards.sample+"/"+seq_type+"/"+tumor_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"filter."+"bam.bai",config["dir"]["base"]+"/"+wildcards.sample+"/"+"Normal"+"/"+normal_seq+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"filter."+"bam.bai"]
 
 
 #get input tumor normal bam files
@@ -887,7 +829,7 @@ else :
             #COV_NORMAL,
             #COV_TUMOR,
             #MSI_STATUT,
-            #MUTECT2_PON,
+            MUTECT2_PON,
             #GERMLINE_SNP_ANNOT,
             #GERMLINE_INDEL_ANNOT,
             #HLA_TYPE,
@@ -896,11 +838,16 @@ else :
             #SOMATIC_SNV_ANNOT,
             #SOMATIC_INDEL_ANNOT,
             #SOMATIC_SV,
-            #MERGE_SNV_SOMATIC,
-            #MERGE_INDEL_SOMATIC,
-            #MERGE_SNV_GERMLINE,
-            #MERGE_INDEL_GERMLINE,
+            MERGE_SNV_SOMATIC,
+            MERGE_INDEL_SOMATIC,
+            MERGE_SNV_GERMLINE,
+            MERGE_INDEL_GERMLINE,
             #SEQUENZA,
+            #NEUSOMATIC,
+            #DEEPSOMATIC,
+            #VARNET,
+            #TNSCOPE,
+            #TNSCOPE2,
             #CN,
             #COLLECT_READS,
             #COLLECT_ALLELIC,
@@ -909,10 +856,10 @@ else :
             #MODEL_SEGMENTS,
             #CALLED_SEGMENTS,
             #PLOT_MODEL,
-            #MUTECT2_TO,
-            PURE_CN_COV,
-            PURE_CN,
-            PON_VCF,
+            MUTECT2_TO,
+            #PURE_CN_COV,
+            #PURE_CN,
+            #PON_VCF,
             #CROSS_CHECK_FINGERPRINTS,
             #IMPORT_SNV_SOMATIC,
             #IMPORT_INDEL_SOMATIC,
@@ -931,6 +878,10 @@ if paired is True :
         if trimming is True :
 
             rule trim:
+                resources:
+                    cpus_per_task=8,
+                    mem_mb=16000,
+                    runtime=1440
                 input:
                     fastq_dir+"/"+"{seq_name}_R1_001.fastq.gz",
                     fastq_dir+"/"+"{seq_name}_R3_001.fastq.gz",
@@ -947,6 +898,10 @@ if paired is True :
 
          	#Fastqc
             rule fastqc:
+                resources:
+                    cpus_per_task=8,
+                    mem_mb=2000,
+                    runtime=1440
                 input:
                     bwa_input,
                 output:
@@ -964,6 +919,10 @@ if paired is True :
         else :
 		
             rule fastqc:
+                resources:
+                    cpus_per_task=8,
+                    mem_mb=2000,
+                    runtime=1440
                 input:
                     bwa_input,
                 output:
@@ -985,6 +944,10 @@ if paired is True :
         if trimming is True :
 
             rule trim:
+                resources:
+                    cpus_per_task=8,
+                    mem_mb=16000,
+                    runtime=1440
                 input:
                     fastq_dir+"/"+"{seq_name}_R1_001.fastq.gz",
                     fastq_dir+"/"+"{seq_name}_R2_001.fastq.gz",
@@ -995,14 +958,18 @@ if paired is True :
                     r2_unpaired=temp(fastq_dir+"/"+"{seq_name}_R2_001.unpaired.trim.fastq.gz"),
                 container:
                     "docker://ngsom/tumorseq"
-                benchmark:
-                    "benchmarks/{seq_name}.trim.txt"
+                #benchmark:
+                    #"benchmark{seq_name}.trim.txt"
                 params:
                     crop=params_trim_crop
                 shell:"java -Xmx16G -jar /usr/share/java/Trimmomatic-0.39/trimmomatic-0.39.jar PE -threads 8 -phred33 {input} {output.r1_paired} {output.r1_unpaired} {output.r2_paired} {output.r2_unpaired} HEADCROP:8 SLIDINGWINDOW:4:15 CROP:{params.crop}"
 
          	#Fastqc
             rule fastqc:
+                resources:
+                    cpus_per_task=8,
+                    mem_mb=2000,
+                    runtime=1440
                 input:
                     bwa_input,
                 output:
@@ -1014,14 +981,18 @@ if paired is True :
                     base_dir=output_dir
                 container:
                     "docker://ngsom/tumorseq"
-                benchmark:
-                    "benchmarks/{sample}_{seq_type}_{seq_name}.fastqc.txt"
+                #benchmark:
+                    #"benchmark{sample}_{seq_type}_{seq_name}.fastqc.txt"
                 shell:
             	    "fastqc {input} -o {params.base_dir}/{wildcards.sample}/{wildcards.seq_type}/report_{wildcards.seq_name} -t 8"
 
         else :
 
             rule fastqc:
+                resources:
+                    cpus_per_task=8,
+                    mem_mb=2000,
+                    runtime=1440
                 input:
                     bwa_input,
                 output:
@@ -1033,26 +1004,34 @@ if paired is True :
                     base_dir=output_dir
                 container:
                     "docker://ngsom/tumorseq"
-                benchmark:
-                    "benchmarks/{sample}_{seq_type}_{seq_name}.fastqc.txt"
+                #benchmark:
+                    #"benchmark{sample}_{seq_type}_{seq_name}.fastqc.txt"
                 shell:
             	    "fastqc {input} -o {params.base_dir}/{wildcards.sample}/{wildcards.seq_type}/report_{wildcards.seq_name} -t 8"
 
 else :
 
     rule trim:
+        resources:
+            cpus_per_task=8,
+            mem_mb=16000,
+            runtime=1440
         input:
             fastq_dir+"/"+"{seq_name}_R1_001.fastq.gz",
         output:
             temp(fastq_dir+"/"+"{seq_name}_R1_001.trim.fastq.gz"),
         container:
             "docker://ngsom/tumorseq"
-        benchmark:
-            "benchmarks/{seq_name}.trim.txt"
+        #benchmark:
+            #"benchmark{seq_name}.trim.txt"
         shell:"java -Xmx16G -jar /usr/share/java/Trimmomatic-0.39/trimmomatic-0.39.jar SE -threads 8 -phred33 {input} {output} HEADCROP:8 SLIDINGWINDOW:4:15 CROP:250"
 
      #Fastqc
     rule fastqc:
+        resources:
+            cpus_per_task=8,
+            mem_mb=2000,
+            runtime=1440
         input:
             bwa_input,
         output:
@@ -1062,13 +1041,17 @@ else :
             base_dir=output_dir
         container:
             "docker://ngsom/tumorseq"
-        benchmark:
-            "benchmarks/{sample}_{seq_type}_{seq_name}.trim.txt"
+        #benchmark:
+            #"benchmark{sample}_{seq_type}_{seq_name}.trim.txt"
         shell:
             "fastqc {input} -o {params.base_dir}/{wildcards.sample}/{wildcards.seq_type}/report_{wildcards.seq_name} -t 8"
 
 #Mapping with BWA mem
 rule bwa_map:
+    resources:
+        cpus_per_task=8,
+        mem_mb=8000,
+        runtime=1440
     input:
         config["genome"]["fasta_file"],
         bwa_input,
@@ -1077,11 +1060,15 @@ rule bwa_map:
     container:
         "docker://ngsom/tumorseq"
     benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.bwa_map.txt"
+        "benchmark/{sample}_{seq_type}_{seq_name}.bwa_map.txt"
     shell:
         "bwa mem -t 8 -M {input} | samtools view -Sb - > {output}"
 
 rule LocatIt:
+    resources:
+        cpus_per_task=1,
+        mem_mb=120000,
+        runtime=1440
     input:
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"],
@@ -1096,6 +1083,10 @@ rule LocatIt:
 
 #Sort Bam Files
 rule samtools_sort:
+    resources:
+        cpus_per_task=6,
+        mem_mb=14000,
+        runtime=1440
     input:
         config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"bam"
     output:
@@ -1103,7 +1094,7 @@ rule samtools_sort:
     container:
         "docker://ngsom/tumorseq"
     benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.samtools_sort.txt"
+        "benchmark/{sample}_{seq_type}_{seq_name}.samtools_sort.txt"
     params:
         base_dir=output_dir
     shell:
@@ -1112,6 +1103,10 @@ rule samtools_sort:
 
 #Index Bam Files
 rule samtools_index :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort.bam"
     output:
@@ -1123,6 +1118,10 @@ rule samtools_index :
 
 #Remove Non uniq map reads
 rule samtools_uniq :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort.bam",
         index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort.bam.bai",
@@ -1135,6 +1134,10 @@ rule samtools_uniq :
 
 #Index Bam files
 rule samtools_index_uniq :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}.sort.uniq.bam"
     output:
@@ -1146,21 +1149,25 @@ rule samtools_index_uniq :
 
 #Add RG group
 rule picard_add_group :
+    resources:
+        cpus_per_task=2,
+        mem_mb=4000,
+        runtime=1440
     input:
         bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"bam",
         index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"bam.bai",
     output:
-        temp(config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam")
+        config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam"
     container:
         "docker://ngsom/tumorseq"
     benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.picard_add_group.txt"
+        "benchmark/{sample}_{seq_type}_{seq_name}.picard_add_group.txt"
     params:
         RGLB=config['metadata']['design_name'],
         RGPL=config["metadata"]["platform"],
         RGCN=config["metadata"]["center"],
         RGDT=config['metadata']['date'],
-    shell :"""java -XX:ParallelGCThreads=2 -Xmx16G -jar /usr/share/java/picard.jar AddOrReplaceReadGroups \
+    shell :"""java -XX:ParallelGCThreads=2 -Xmx4G -jar /usr/share/java/picard.jar AddOrReplaceReadGroups \
         -I {input.bam} \
         -O {output} \
         -RGID {wildcards.seq_name} \
@@ -1176,10 +1183,14 @@ rule picard_add_group :
 
 #Index Bam files
 rule samtools_index_rg :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam"
     output:
-        temp(config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam.bai")
+        config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam.bai"
     container:
         "docker://ngsom/tumorseq"
     shell:
@@ -1235,16 +1246,20 @@ rule samtools_index_rg :
 #        """
 
 rule sambamba_dedup :
+    resources:
+        cpus_per_task=8,
+        mem_mb=4000,
+        runtime=1440
     input:
         bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam",
         index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG."+"bam.bai",
         ref=config["genome"]["fasta_file"]
     output:
-        bam=temp(config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+".dedup."+"bam")
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+".dedup."+"bam"
     container:
         "docker://ngsom/tumorseq"
     benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.sambamba_dedup.txt"
+        "benchmark/{sample}_{seq_type}_{seq_name}.sambamba_dedup.txt"
     params:
         base_dir=output_dir
     shell:
@@ -1255,6 +1270,10 @@ rule sambamba_dedup :
 
 #Index Bam files
 rule samtools_index_dedup :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+".dedup."+"bam"
     output:
@@ -1273,8 +1292,8 @@ rule samtools_index_dedup :
 #        target=config["metadata"]["design"]
 #    output:
 #        grp=temp(config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}.grp"),
-#        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
-#        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai"
+#        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
+#        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai"
 #    container:
 #        "docker://broadinstitute/gatk:4.2.2.0"
 #    params:
@@ -1303,6 +1322,10 @@ rule samtools_index_dedup :
 #        """
 
 rule GATK_recalibrate :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"bam",
         index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"bam.bai",
@@ -1317,18 +1340,18 @@ rule GATK_recalibrate :
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
     benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.GATK_recalibrate.txt"
+        "benchmark/{sample}_{seq_type}_{seq_name}.GATK_recalibrate.txt"
     params:
         base_dir=output_dir
     shell:"""
         gatk BaseRecalibrator \
-        --java-options -Xmx16G \
+        --java-options -Xmx8G \
         -R {input.ref} \
         -I {input.bam} \
         --known-sites {input.known_site} \
         -O {output.grp} 
         gatk ApplyBQSR \
-        --java-options -Xmx16G \
+        --java-options -Xmx8G \
         -R {input.ref} \
         -I {input.bam} \
         --bqsr-recal-file {output.grp} \
@@ -1337,16 +1360,20 @@ rule GATK_recalibrate :
         """
 
 rule filter_bam :
+    resources:
+        cpus_per_task=1,
+        mem_mb=16000,
+        runtime=1440
     input:
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai"
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai"
     output:
-        bam=temp(config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall.filter."+"bam"),
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall.filter."+"bam.bai"
+        bam=temp(config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"filter."+"bam"),
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"filter."+"bam.bai"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.filter_bam.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_type}_{seq_name}.filter_bam.txt"
     shell:
         """
         /opt/sambamba-0.8.2-linux-amd64-static view {input.bam} --filter "not (unmapped or duplicate or secondary_alignment or failed_quality_control or supplementary)" --format bam --nthreads 8 --output-filename {output.bam}
@@ -1354,9 +1381,13 @@ rule filter_bam :
 
 #Collect Sequencing Artifacts
 rule picard_collect_seq_artifacts :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
         ref=config["genome"]["fasta_file"]
     output:
         output_dir+"/{sample}/{seq_type}/report_{seq_name}/{seq_name}.pre_adapter_detail_metrics.txt",
@@ -1366,13 +1397,13 @@ rule picard_collect_seq_artifacts :
         output_dir+"/{sample}/{seq_type}/report_{seq_name}/{seq_name}.error_summary_metrics.txt"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.picard_collect_seq_artifacts.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_type}_{seq_name}.picard_collect_seq_artifacts.txt"
     params:
         base_dir=output_dir
     shell:
         """
-        java -Xmx16G -jar /usr/share/java/picard.jar CollectSequencingArtifactMetrics \
+        java -Xmx8G -jar /usr/share/java/picard.jar CollectSequencingArtifactMetrics \
         -R {input.ref} \
         -I {input.bam} \
         -O {params.base_dir}/{wildcards.sample}/{wildcards.seq_type}/report_{wildcards.seq_name}/{wildcards.seq_name} \
@@ -1380,15 +1411,19 @@ rule picard_collect_seq_artifacts :
         """
 
 rule sambamba_flagstat :
+    resources:
+        cpus_per_task=8,
+        mem_mb=16000,
+        runtime=1440
     input:
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
     output:
         output_dir+"/{sample}/{seq_type}/report_{seq_name}/{seq_name}.flagstat.txt"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.sambamba_flagstat.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_type}_{seq_name}.sambamba_flagstat.txt"
     params:
         base_dir=output_dir
     shell:
@@ -1397,9 +1432,13 @@ rule sambamba_flagstat :
         """
 
 rule PileupSummaries :
+    resources:
+        cpus_per_task=1,
+        mem_mb=16000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"],
         exac_common=config["genome"]["exac_common"]
@@ -1407,8 +1446,8 @@ rule PileupSummaries :
         config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/{seq_name}.pileupsummaries.table"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.pileup_summaries.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_type}_{seq_name}.pileup_summaries.txt"
     params:
         base_dir=output_dir
     shell:
@@ -1424,6 +1463,10 @@ rule PileupSummaries :
         """
 
 rule PreprocessIntervals :
+    resources:
+        cpus_per_task=1,
+        mem_mb=16000,
+        runtime=1440
     input:
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"]
@@ -1431,8 +1474,8 @@ rule PreprocessIntervals :
         config["dir"]["base"]+"/target.preprocessed.interval_list"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-        "benchmarks/preprocessIntervals.txt"
+    #benchmark:
+        #"benchmarkpreprocessIntervals.txt"
     params:
         base_dir=output_dir
     shell:
@@ -1447,23 +1490,27 @@ rule PreprocessIntervals :
         """
 
 rule CollectAllelicCounts :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         exac_common=config["genome"]["exac_common"]
     output:
         config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}.allelicCounts.tsv"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.CollectAllelicCounts.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_type}_{seq_name}.CollectAllelicCounts.txt"
     params:
         base_dir=output_dir
     shell:
         """
         gatk CollectAllelicCounts \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         -I {input.bam} \
         --reference {input.ref} \
         -L {input.exac_common} \
@@ -1471,23 +1518,27 @@ rule CollectAllelicCounts :
         """
 
 rule CollectReadCounts :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         target=config["dir"]["base"]+"/target.preprocessed.interval_list"
     output:
         config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}.counts.hdf5"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.CollectReadCounts.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_type}_{seq_name}.CollectReadCounts.txt"
     params:
         base_dir=output_dir
     shell:
         """
         # PileupSummaries
         gatk CollectReadCounts \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         -I {input.bam} \
         -L {input.target} \
         --interval-merging-rule OVERLAPPING_ONLY \
@@ -1495,6 +1546,10 @@ rule CollectReadCounts :
         """
 
 rule DenoiseReadCounts :
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         tumor_read_counts=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}.counts.hdf5",
         pon_cna=config["GATK4_CNA"]["pon_cna"]
@@ -1503,14 +1558,14 @@ rule DenoiseReadCounts :
         denoisedCR=config["dir"]["base"]+"/{sample}/{seq_type}/GATK4_CNA/{seq_name}.denoisedCR.tsv"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.DenoiseReadCounts.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_type}_{seq_name}.DenoiseReadCounts.txt"
     params:
         base_dir=output_dir
     shell:
         """
         gatk DenoiseReadCounts \
-        --java-options -Xmx16G \
+        --java-options -Xmx2G \
         -I {input.tumor_read_counts} \
         --count-panel-of-normals {input.pon_cna} \
         --standardized-copy-ratios {output.standardizedCR}  \
@@ -1518,6 +1573,10 @@ rule DenoiseReadCounts :
         """
 
 rule PlotDenoiseReadCounts :
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         standardizedCR=config["dir"]["base"]+"/{sample}/{seq_type}/GATK4_CNA/{seq_name}.standardizedCR.tsv",
         denoisedCR=config["dir"]["base"]+"/{sample}/{seq_type}/GATK4_CNA/{seq_name}.denoisedCR.tsv",
@@ -1526,14 +1585,14 @@ rule PlotDenoiseReadCounts :
         clean_denoised_png=config["dir"]["base"]+"/{sample}/{seq_type}/GATK4_CNA/plots/{seq_name}.denoised.png"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.PlotDenoiseReadCounts.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_type}_{seq_name}.PlotDenoiseReadCounts.txt"
     params:
         base_dir=output_dir
     shell:
         """
         gatk PlotDenoisedCopyRatios \
-        --java-options -Xmx16G \
+        --java-options -Xmx2G \
         --standardized-copy-ratios {input.standardizedCR} \
         --sequence-dictionary {input.genome_dict} \
         --denoised-copy-ratios {input.denoisedCR} \
@@ -1542,6 +1601,10 @@ rule PlotDenoiseReadCounts :
         """
 
 rule ModelSegments:
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         paired=get_paired_allelic,
         ref=config["genome"]["fasta_file"],
@@ -1552,13 +1615,13 @@ rule ModelSegments:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/GATK4_Allelic_CNA/{seq_name}_vs_{normal}.hets.tsv",
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-        "benchmarks/{sample}_{seq_name}_{normal}.ModelSegments.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_name}_{normal}.ModelSegments.txt"
     params:
         base_dir=output_dir,
     shell:"""
         gatk ModelSegments \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --denoised-copy-ratios {input.paired[2]} \
         --allelic-counts {input.paired[0]} \
         --normal-allelic-counts {input.paired[1]} \
@@ -1567,24 +1630,32 @@ rule ModelSegments:
         """
 
 rule CallCopyRatioSegments:
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/GATK4_Allelic_CNA/{seq_name}_vs_{normal}.cr.seg"
     output:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/GATK4_Allelic_CNA/{seq_name}_vs_{normal}.called.seg"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-        "benchmarks/{sample}_{seq_name}_{normal}.CallCopyRatioSegments.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_name}_{normal}.CallCopyRatioSegments.txt"
     params:
         base_dir=output_dir,
     shell:"""
         gatk CallCopyRatioSegments \
-        --java-options -Xmx16G \
+        --java-options -Xmx2G \
         --input {input} \
         --output {output}
         """
 
 rule PlotModeledSegments:
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         paired=get_paired_allelic,
         model=config["dir"]["base"]+"/{sample}/SomaticAnalysis/GATK4_Allelic_CNA/{seq_name}_vs_{normal}.modelFinal.seg",
@@ -1593,13 +1664,13 @@ rule PlotModeledSegments:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/GATK4_Allelic_CNA/plots/{seq_name}_vs_{normal}.modeled.png"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-        "benchmarks/{sample}_{seq_name}_{normal}.PlotModelSegments.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_name}_{normal}.PlotModelSegments.txt"
     params:
         base_dir=output_dir,
     shell:"""
         gatk PlotModeledSegments \
-        --java-options -Xmx16G \
+        --java-options -Xmx2G \
         --denoised-copy-ratios {input.paired[2]} \
         --allelic-counts {input.hets} \
         --segments {input.model} \
@@ -1609,6 +1680,10 @@ rule PlotModeledSegments:
         """
 
 rule CalculateContamination:
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         paired=get_paired_pileup,
         ref=config["genome"]["fasta_file"],
@@ -1617,20 +1692,24 @@ rule CalculateContamination:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.CalculateContamination.table"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-        "benchmarks/{sample}_{seq_name}_{normal}.calculate_cont.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_name}_{normal}.calculate_cont.txt"
     params:
         base_dir=output_dir,
     shell:"""
         # Calculate contamination
         gatk CalculateContamination \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         -I {input.paired[0]} \
         --matched-normal {input.paired[1]} \
         -O {output}
         """
 
 rule Cross_check_fingerprints:
+    resources:
+        cpus_per_task=1,
+        mem_mb=16000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -1640,8 +1719,8 @@ rule Cross_check_fingerprints:
         config["dir"]["base"]+"/{sample}/{seq_name}.crosscheck_metrics"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-        "benchmarks/{sample}_{seq_name}.cross_check_fingerprints.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_name}.cross_check_fingerprints.txt"
     params:
         base_dir=output_dir,
     shell:"""
@@ -1660,6 +1739,10 @@ rule Cross_check_fingerprints:
         """
 
 rule bam2fq :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         hla_ref=config["genome"]["hla_ref"],
         fastq=bwa_input
@@ -1677,6 +1760,10 @@ rule bam2fq :
         """
 
 rule optitype :
+    resources:
+        cpus_per_task=1,
+        mem_mb=16000,
+        runtime=1440
     input:
         fq1=config["dir"]["base"]+"/{sample}/Normal/Optitype/{seq_name}_hla_1.fastq",
         fq2=config["dir"]["base"]+"/{sample}/Normal/Optitype/{seq_name}_hla_2.fastq",
@@ -1692,17 +1779,21 @@ rule optitype :
         """
 
 rule freebayesGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input :
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"]
     output :
         config["dir"]["base"]+"/{sample}/Normal/FreeBayes/{seq_name}.FreeBayes.germline.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-        "benchmarks/{sample}_{seq_name}.freebayesGerm.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_name}.freebayesGerm.txt"
     shell:"""
     # Variant calling with FreeBayes
     freebayes -b {input.bam} \
@@ -1722,6 +1813,10 @@ rule freebayesGerm :
     """
 
 rule vt_freebayesGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/FreeBayes/{seq_name}.FreeBayes.germline.vcf",
         ref=config["genome"]["fasta_file"]
@@ -1729,8 +1824,8 @@ rule vt_freebayesGerm :
         config["dir"]["base"]+"/{sample}/Normal/FreeBayes/{seq_name}.FreeBayes.germline.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.vt_freebayesGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.vt_freebayesGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -1738,6 +1833,10 @@ rule vt_freebayesGerm :
         """
 
 rule GATK_left_align_freebayesGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/FreeBayes/{seq_name}.FreeBayes.germline.vcf",
         ref=config["genome"]["fasta_file"]
@@ -1750,7 +1849,7 @@ rule GATK_left_align_freebayesGerm :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -1758,6 +1857,10 @@ rule GATK_left_align_freebayesGerm :
         """
 
 rule split_snp_indel_freebayesGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/FreeBayes/{seq_name}.FreeBayes.germline.normalized.vcf"
     output:
@@ -1765,8 +1868,8 @@ rule split_snp_indel_freebayesGerm :
         config["dir"]["base"]+"/{sample}/Normal/FreeBayes/{seq_name}.FreeBayes.germline.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.split_freebayesGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.split_freebayesGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -1777,23 +1880,27 @@ rule split_snp_indel_freebayesGerm :
         """
 
 rule GATK_haplotypecaller :
+    resources:
+        cpus_per_task=8,
+        mem_mb=8000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"]
     output:
         config["dir"]["base"]+"/{sample}/Normal/HaplotypeCaller/{seq_name}.HaplotypeCaller.germline.vcf"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.GATK_HC.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.GATK_HC.txt"
     params:
         base_dir=output_dir
     shell:"""
         # Variant calling
         gatk HaplotypeCaller \
-        --java-options -Xmx16G \
+        --java-options -Xmx8G \
         --native-pair-hmm-threads 8 \
         --reference {input.ref} \
         -L {input.target} \
@@ -1802,6 +1909,10 @@ rule GATK_haplotypecaller :
         """
 
 rule vt_hc :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/HaplotypeCaller/{seq_name}.HaplotypeCaller.germline.vcf",
         ref=config["genome"]["fasta_file"]
@@ -1809,8 +1920,8 @@ rule vt_hc :
         config["dir"]["base"]+"/{sample}/Normal/HaplotypeCaller/{seq_name}.HaplotypeCaller.germline.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.vt_hc.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.vt_hc.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -1818,6 +1929,10 @@ rule vt_hc :
         """
 
 rule GATK_left_align_hc :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/HaplotypeCaller/{seq_name}.HaplotypeCaller.germline.vcf",
         ref=config["genome"]["fasta_file"]
@@ -1830,7 +1945,7 @@ rule GATK_left_align_hc :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -1838,6 +1953,10 @@ rule GATK_left_align_hc :
         """
 
 rule split_snp_indel_hc :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/HaplotypeCaller/{seq_name}.HaplotypeCaller.germline.normalized.vcf"
     output:
@@ -1845,8 +1964,8 @@ rule split_snp_indel_hc :
         config["dir"]["base"]+"/{sample}/Normal/HaplotypeCaller/{seq_name}.HaplotypeCaller.germline.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.split_hc.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.split_hc.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -1857,17 +1976,21 @@ rule split_snp_indel_hc :
         """
 
 rule platypusGerm :
+    resources:
+        cpus_per_task=8,
+        mem_mb=4000,
+        runtime=1440
     input :
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"]
     output :
         config["dir"]["base"]+"/{sample}/Normal/Platypus/{seq_name}.Platypus.germline.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.PlatypusGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.PlatypusGerm.txt"
     params:
         base_dir=output_dir,
         dedup = dedup_option_platypus
@@ -1877,6 +2000,10 @@ rule platypusGerm :
     """
 
 rule vt_platypusGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Platypus/{seq_name}.Platypus.germline.vcf",
         ref=config["genome"]["fasta_file"]
@@ -1884,8 +2011,8 @@ rule vt_platypusGerm :
         config["dir"]["base"]+"/{sample}/Normal/Platypus/{seq_name}.Platypus.germline.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.vt_PlatypusGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.vt_PlatypusGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -1893,6 +2020,10 @@ rule vt_platypusGerm :
         """
 
 rule GATK_left_align_platypusGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Platypus/{seq_name}.Platypus.germline.vcf",
         ref=config["genome"]["fasta_file"]
@@ -1905,7 +2036,7 @@ rule GATK_left_align_platypusGerm :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -1913,6 +2044,10 @@ rule GATK_left_align_platypusGerm :
         """
 
 rule split_snp_indel_platypusGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Platypus/{seq_name}.Platypus.germline.normalized.vcf"
     output:
@@ -1920,8 +2055,8 @@ rule split_snp_indel_platypusGerm :
         config["dir"]["base"]+"/{sample}/Normal/Platypus/{seq_name}.Platypus.germline.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.split_platypusGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.split_platypusGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -1932,9 +2067,13 @@ rule split_snp_indel_platypusGerm :
         """
 
 rule piscesGerm :
+    resources:
+        cpus_per_task=8,
+        mem_mb=12000,
+        runtime=1440
     input :
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"],
         dir_ref = genome_dir
@@ -1942,8 +2081,8 @@ rule piscesGerm :
         config["dir"]["base"]+"/{sample}/Normal/Pisces/{seq_name}.Pisces.germline.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.piscesGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.piscesGerm.txt"
     params:
         base_dir=output_dir,
         dedup=dedup_option_pisces
@@ -1953,6 +2092,10 @@ rule piscesGerm :
     """
 
 rule vt_piscesGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Pisces/{seq_name}.Pisces.germline.vcf",
         ref=config["genome"]["fasta_file"]
@@ -1960,8 +2103,8 @@ rule vt_piscesGerm :
         config["dir"]["base"]+"/{sample}/Normal/Pisces/{seq_name}.Pisces.germline.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.vt_piscesGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.vt_piscesGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -1969,6 +2112,10 @@ rule vt_piscesGerm :
         """
 
 rule GATK_left_align_piscesGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Pisces/{seq_name}.Pisces.germline.vcf",
         ref=config["genome"]["fasta_file"]
@@ -1981,7 +2128,7 @@ rule GATK_left_align_piscesGerm :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -1989,6 +2136,10 @@ rule GATK_left_align_piscesGerm :
         """
 
 rule split_snp_indel_piscesGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Pisces/{seq_name}.Pisces.germline.normalized.vcf"
     output:
@@ -1996,8 +2147,8 @@ rule split_snp_indel_piscesGerm :
         config["dir"]["base"]+"/{sample}/Normal/Pisces/{seq_name}.Pisces.germline.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.split_piscesGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.split_piscesGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2009,17 +2160,21 @@ rule split_snp_indel_piscesGerm :
 
 #VarScan2 Germline SNV (Germline Analysis)
 rule VarScan2_SNPGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"]
     output:
         config["dir"]["base"]+"/{sample}/Normal/VarScan2/{seq_name}.VarScan2.germline.snv.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.VarScan2_SNPGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.VarScan2_SNPGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2029,7 +2184,7 @@ rule VarScan2_SNPGerm :
     -d 100000 \
     -f {input.ref} \
     -l {input.target} \
-    {input.bam} | java -Xmx16G -jar /usr/share/java/VarScan.v2.3.9.jar mpileup2snp \
+    {input.bam} | java -Xmx4G -jar /usr/share/java/VarScan.v2.3.9.jar mpileup2snp \
     --output-vcf 1 \
     --min-coverage 10 \
     --min-reads2 2 \
@@ -2039,6 +2194,10 @@ rule VarScan2_SNPGerm :
     """
 
 rule vt_varscan2_snp :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/VarScan2/{seq_name}.VarScan2.germline.snv.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2046,8 +2205,8 @@ rule vt_varscan2_snp :
         config["dir"]["base"]+"/{sample}/Normal/VarScan2/{seq_name}.VarScan2.germline.snv.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.vt_VarScan2_SNPGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.vt_VarScan2_SNPGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2055,6 +2214,10 @@ rule vt_varscan2_snp :
         """
 
 rule GATK_left_align_varscan2_snp :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/VarScan2/{seq_name}.VarScan2.germline.snv.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2067,7 +2230,7 @@ rule GATK_left_align_varscan2_snp :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -2075,17 +2238,21 @@ rule GATK_left_align_varscan2_snp :
         """
 
 rule VarScan2_INDELGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"]
     output:
         config["dir"]["base"]+"/{sample}/Normal/VarScan2/{seq_name}.VarScan2.germline.indel.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.VarScan2_INDELGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.VarScan2_INDELGerm.txt"
     shell:"""
     # Variant calling with VarScan2
     samtools mpileup \
@@ -2093,7 +2260,7 @@ rule VarScan2_INDELGerm :
     -d 100000 \
     -f {input.ref} \
     -l {input.target} \
-    {input.bam} | java -Xmx16G -jar /usr/share/java/VarScan.v2.3.9.jar mpileup2indel \
+    {input.bam} | java -Xmx4G -jar /usr/share/java/VarScan.v2.3.9.jar mpileup2indel \
     --output-vcf 1 \
     --min-coverage 10 \
     --min-reads2 2 \
@@ -2103,6 +2270,10 @@ rule VarScan2_INDELGerm :
     """
 
 rule vt_varscan2_indel :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/VarScan2/{seq_name}.VarScan2.germline.indel.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2110,8 +2281,8 @@ rule vt_varscan2_indel :
         config["dir"]["base"]+"/{sample}/Normal/VarScan2/{seq_name}.VarScan2.germline.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.vt_VarScan2_INDELGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.vt_VarScan2_INDELGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2119,6 +2290,10 @@ rule vt_varscan2_indel :
         """   
 
 rule GATK_left_align_varscan2_indel :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/VarScan2/{seq_name}.VarScan2.germline.indel.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2131,7 +2306,7 @@ rule GATK_left_align_varscan2_indel :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -2139,17 +2314,21 @@ rule GATK_left_align_varscan2_indel :
         """
 
 rule StrelkaGerm :
+    resources:
+        cpus_per_task=8,
+        mem_mb=16000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"]
     output:
         config["dir"]["base"]+"/{sample}/Normal/Strelka/{seq_name}.Strelka.germline.vcf",
     container:
         "docker://ngsom/somatic"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.StrelkaGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.StrelkaGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2163,6 +2342,10 @@ rule StrelkaGerm :
     """
 
 rule StrelkaFilterRegionGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Strelka/{seq_name}.Strelka.germline.vcf",
         target=config["metadata"]["design"]
@@ -2170,8 +2353,8 @@ rule StrelkaFilterRegionGerm :
         config["dir"]["base"]+"/{sample}/Normal/Strelka/{seq_name}.Strelka.germline.recode.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.StrelkaFilterRegionGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.StrelkaFilterRegionGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2179,6 +2362,10 @@ rule StrelkaFilterRegionGerm :
     """
 
 rule vt_strelka :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Strelka/{seq_name}.Strelka.germline.recode.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2186,8 +2373,8 @@ rule vt_strelka :
         config["dir"]["base"]+"/{sample}/Normal/Strelka/{seq_name}.Strelka.germline.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.vt_StrelkaGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.vt_StrelkaGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2195,6 +2382,10 @@ rule vt_strelka :
         """
 
 rule GATK_left_align_strelka :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Strelka/{seq_name}.Strelka.germline.recode.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2207,7 +2398,7 @@ rule GATK_left_align_strelka :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -2216,6 +2407,10 @@ rule GATK_left_align_strelka :
 
 
 rule split_snp_indel_StrelkaGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Strelka/{seq_name}.Strelka.germline.normalized.vcf"
     output:
@@ -2223,8 +2418,8 @@ rule split_snp_indel_StrelkaGerm :
         config["dir"]["base"]+"/{sample}/Normal/Strelka/{seq_name}.Strelka.germline.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.split_StrelkaGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.split_StrelkaGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2235,17 +2430,21 @@ rule split_snp_indel_StrelkaGerm :
         """
 
 rule ScalpelGerm :
+    resources:
+        cpus_per_task=8,
+        mem_mb=16000,
+        runtime=1440
     input :
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"]
     output :
         config["dir"]["base"]+"/{sample}/Normal/Scalpel/{seq_name}.Scalpel.germline.indel.vcf"
     container:
         "docker://lethalfang/scalpel:0.5.4"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.ScalpelGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.ScalpelGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2254,6 +2453,10 @@ rule ScalpelGerm :
     """
 
 rule vt_scalpelGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Scalpel/{seq_name}.Scalpel.germline.indel.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2261,8 +2464,8 @@ rule vt_scalpelGerm :
         config["dir"]["base"]+"/{sample}/Normal/Scalpel/{seq_name}.Scalpel.germline.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.vt_ScalpelGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.vt_ScalpelGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2270,6 +2473,10 @@ rule vt_scalpelGerm :
         """
 
 rule GATK_left_align_scalpelGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/Normal/Scalpel/{seq_name}.Scalpel.germline.indel.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2282,7 +2489,7 @@ rule GATK_left_align_scalpelGerm :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -2290,9 +2497,13 @@ rule GATK_left_align_scalpelGerm :
         """
 
 rule prepare_pindelGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam"
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam"
     output:
         temp(config["dir"]["base"]+"/{sample}/Normal/pindel/{seq_name}.pindel.config.txt")
     container:
@@ -2303,10 +2514,14 @@ rule prepare_pindelGerm :
         "echo -e \"{input.bam}\t{params.insert_size}\t{wildcards.seq_name}\" > {output}"
 
 rule pindelGerm :
+    resources:
+        cpus_per_task=4,
+        mem_mb=8000,
+        runtime=1440
     input:
         config=config["dir"]["base"]+"/{sample}/Normal/pindel/{seq_name}.pindel.config.txt",
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"]
     output:
         temp(output_dir+"/{sample}/Normal/pindel/tmp/{seq_name}.{chr}.INDEL_SI"),
@@ -2318,8 +2533,8 @@ rule pindelGerm :
         temp(output_dir+"/{sample}/Normal/pindel/tmp/{seq_name}.{chr}.INDEL_CloseEndMapped"),
         temp(output_dir+"/{sample}/Normal/pindel/tmp/{seq_name}.{chr}.INDEL_INT_final"),
         temp(output_dir+"/{sample}/Normal/pindel/tmp/{seq_name}.{chr}.INDEL_RP"),
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.{chr}.pindelGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.{chr}.pindelGerm.txt"
     container:
         "docker://ngsom/tumorseq"
     params:
@@ -2330,6 +2545,10 @@ rule pindelGerm :
         """
 
 rule merge_pindel_filesGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         SI=expand(output_dir+"/{{sample}}/Normal/pindel/tmp/{{seq_name}}.{chr}.INDEL_SI",chr=CHROMS),
         D=expand(output_dir+"/{{sample}}/Normal/pindel/tmp/{{seq_name}}.{chr}.INDEL_D",chr=CHROMS),
@@ -2359,6 +2578,10 @@ rule merge_pindel_filesGerm :
         """
 
 rule pindel2vcfGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         SI_file=output_dir+"/{sample}/Normal/pindel/{seq_name}.merge.INDEL_SI",
         D_file=output_dir+"/{sample}/Normal/pindel/{seq_name}.merge.INDEL_D",
@@ -2371,8 +2594,8 @@ rule pindel2vcfGerm :
         output_dir+"/{sample}/Normal/pindel/{seq_name}.pindel.germline.indel.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.pindel2vcfGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.pindel2vcfGerm.txt"
     params:
         base_dir=output_dir,
         genome_version=config["genome"]["version"]
@@ -2382,6 +2605,10 @@ rule pindel2vcfGerm :
         """
 
 rule pindel_filter_region :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=output_dir+"/{sample}/Normal/pindel/{seq_name}.pindel.germline.indel.vcf",
         ref=config["genome"]["fasta_file"],
@@ -2398,6 +2625,10 @@ rule pindel_filter_region :
         """
 
 rule vt_pindelGerm :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=output_dir+"/{sample}/Normal/pindel/{seq_name}.pindel.germline.indel.LeftAlign.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2405,8 +2636,8 @@ rule vt_pindelGerm :
         output_dir+"/{sample}/Normal/pindel/{seq_name}.pindel.germline.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.vt_pindelGerm.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.vt_pindelGerm.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2414,9 +2645,13 @@ rule vt_pindelGerm :
         """
 
 rule Mutect2Germ:
+    resources:
+        cpus_per_task=8,
+        mem_mb=8000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"],
         gnomad=config["genome"]["gnomad_af_only"]
@@ -2424,14 +2659,15 @@ rule Mutect2Germ:
         vcf=output_dir+"/{sample}/Normal/Mutect2/{seq_name}.Mutect2.for.pon.vcf.gz"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.Mutect2Germ.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.Mutect2Germ.txt"
     shell:"""
         # Mutect2 Germline
+        export OMP_NUM_THREADS={resources.cpus_per_task}
         file_name=$(basename {input.bam})
 		name=${{file_name%.sort*}}
         gatk Mutect2 \
-        --java-options -Xmx16G \
+        --java-options -Xmx8G \
         --native-pair-hmm-threads 8 \
         -max-mnp-distance 0 \
         --reference {input.ref} \
@@ -2444,6 +2680,10 @@ rule Mutect2Germ:
 
 #Run MSI analysis
 rule msisensor:
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -2454,8 +2694,8 @@ rule msisensor:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.msi",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-        "benchmarks/{sample}_{seq_name}_{normal}.msi.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_name}_{normal}.msi.txt"
     params:
         base_dir=config["dir"]["base"]
     shell:
@@ -2467,6 +2707,10 @@ rule msisensor:
 
 #VarScan2 Somatic SNV+INDEL
 rule VarScan2Somatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -2478,7 +2722,7 @@ rule VarScan2Somatic :
     container:
         "docker://ngsom/tumorseq"
     benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.VarScan2Somatic.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.Varscan2Somatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2487,7 +2731,7 @@ rule VarScan2Somatic :
     -d 100000 \
     -f {input.ref} \
     -l {input.target} \
-    {input.paired[1]} {input.paired[0]} | awk '{{if($4 != 0) print $0}}' | awk '{{if($7 != 0) print $0}}' | java -Xmx16G -jar /usr/share/java/VarScan.v2.3.9.jar somatic -mpileup {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarScan2/{wildcards.seq_name}_vs_{wildcards.normal}.VarScan2.somatic \
+    {input.paired[1]} {input.paired[0]} | awk '{{if($4 != 0) print $0}}' | awk '{{if($7 != 0) print $0}}' | java -Xmx2G -jar /usr/share/java/VarScan.v2.3.9.jar somatic -mpileup {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarScan2/{wildcards.seq_name}_vs_{wildcards.normal}.VarScan2.somatic \
     --output-vcf 1 \
     --min-coverage 10 \
     --min-reads2 2 \
@@ -2497,6 +2741,10 @@ rule VarScan2Somatic :
     """
 
 rule VarScan2SomaticBreakMulti :
+    resources:
+        cpus_per_task=1,
+        mem_mb=500,
+        runtime=1440
     input:
         snp=config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarScan2/{seq_name}_vs_{normal}.VarScan2.somatic.snp.vcf",
         indel=config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarScan2/{seq_name}_vs_{normal}.VarScan2.somatic.indel.vcf",
@@ -2513,6 +2761,10 @@ rule VarScan2SomaticBreakMulti :
     """
 
 rule vt_varscan2_somatic_snp :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarScan2/{seq_name}_vs_{normal}.VarScan2.somatic.snp.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2520,8 +2772,8 @@ rule vt_varscan2_somatic_snp :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarScan2/{seq_name}_vs_{normal}.VarScan2.somatic.snv.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_VarScan2Somatic_snp.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_VarScan2Somatic_snp.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2529,6 +2781,10 @@ rule vt_varscan2_somatic_snp :
         """
 
 rule vt_varscan2_somatic_indel :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarScan2/{seq_name}_vs_{normal}.VarScan2.somatic.indel.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2536,8 +2792,8 @@ rule vt_varscan2_somatic_indel :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarScan2/{seq_name}_vs_{normal}.VarScan2.somatic.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_VarScan2Somatic_indel.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_VarScan2Somatic_indel.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2546,6 +2802,10 @@ rule vt_varscan2_somatic_indel :
 
 #VarScan2 Somatic SNV+INDEL
 rule FreeBayesSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -2556,7 +2816,7 @@ rule FreeBayesSomatic :
     container:
         "docker://ngsom/tumorseq"
     benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.FreeBayesSomatic.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.FreeBayesSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2578,6 +2838,10 @@ rule FreeBayesSomatic :
     """
 
 rule FreeBayesSomaticFilter :
+    resources:
+        cpus_per_task=1,
+        mem_mb=1000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.FreeBayes.vcf"
@@ -2585,8 +2849,8 @@ rule FreeBayesSomaticFilter :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.FreeBayes.somatic.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.FreeBayesSomaticFilter.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.FreeBayesSomaticFilter.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2600,6 +2864,10 @@ rule FreeBayesSomaticFilter :
     """
 
 rule vt_freebayesSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.FreeBayes.somatic.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2607,15 +2875,19 @@ rule vt_freebayesSomatic :
        config["dir"]["base"]+"/{sample}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.FreeBayes.somatic.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_FreeBayesSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_FreeBayesSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
-        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - > {output}
+        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - | /opt/vt/vt decompose_blocksub - > {output}
         """
 
 rule GATK_left_align_FreeBayesSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.FreeBayes.somatic.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2628,7 +2900,7 @@ rule GATK_left_align_FreeBayesSomatic :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -2636,6 +2908,10 @@ rule GATK_left_align_FreeBayesSomatic :
         """
 
 rule split_snp_indel_FreeBayesSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.FreeBayes.somatic.normalized.vcf"
     output:
@@ -2643,8 +2919,8 @@ rule split_snp_indel_FreeBayesSomatic :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/FreeBayes/{seq_name}_vs_{normal}.FreeBayes.somatic.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.split_FreebayesSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.split_FreebayesSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2656,6 +2932,10 @@ rule split_snp_indel_FreeBayesSomatic :
 
 #Mutect1 SNV
 rule Mutect:
+    resources:
+        cpus_per_task=1,
+        mem_mb=6000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -2669,12 +2949,12 @@ rule Mutect:
     container:
         "docker://ngsom/mutect"
     benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.Mutect.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.MutectSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
         #Somatic Variant calling with Mutect
-        java -Xmx16G -jar /usr/share/java/mutect-1.1.7.jar -T MuTect \
+        java -Xmx6G -jar /usr/share/java/mutect-1.1.7.jar -T MuTect \
         --reference_sequence {input.ref} \
         --cosmic {input.cosmic} \
         --dbsnp {input.dbsnp} \
@@ -2683,10 +2963,14 @@ rule Mutect:
         -I:normal {input.paired[1]} \
         --out {output.stats} \
         --vcf {output.vcf} \
-        --max_alt_allele_in_normal_fraction 0.05 --max_alt_alleles_in_normal_count 5 -dfrac 1 --pir_median_threshold 0
+        --max_alt_allele_in_normal_fraction 0.05 --max_alt_alleles_in_normal_count 5 -dfrac 1 --pir_median_threshold 0 --tumor_lod 10
         """
 
 rule vt_Mutect :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect/{seq_name}_vs_{normal}.Mutect.somatic.snv.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2694,8 +2978,8 @@ rule vt_Mutect :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect/{seq_name}_vs_{normal}.Mutect.somatic.snv.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_Mutect.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_Mutect.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2703,6 +2987,10 @@ rule vt_Mutect :
         """
 
 rule GATK_left_align_Mutect :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect/{seq_name}_vs_{normal}.Mutect.somatic.snv.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2715,7 +3003,7 @@ rule GATK_left_align_Mutect :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -2723,6 +3011,10 @@ rule GATK_left_align_Mutect :
         """
 
 rule SomaticSniper :
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -2733,15 +3025,19 @@ rule SomaticSniper :
     container:
         "docker://ngsom/somatic"
     benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.SomaticSniper.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.SomaticSniper.txt"
     params:
         base_dir=output_dir
     shell:"""
     #Somatic Variant calling with SomaticSniper
-    bam-somaticsniper -q 1 -Q 10 -G -L -F vcf -f {input.ref} {input.paired[0]} {input.paired[1]} {output}
+    bam-somaticsniper -q 40 -Q 15 -G -L -F vcf -f {input.ref} {input.paired[0]} {input.paired[1]} {output}
     """
 
 rule SomaticSniperFilterRegion :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.somatic.snv.vcf",
         target=config["metadata"]["design"]
@@ -2757,6 +3053,10 @@ rule SomaticSniperFilterRegion :
     """
 
 rule vt_SomaticSniper :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.somatic.snv.recode.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2764,8 +3064,8 @@ rule vt_SomaticSniper :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.somatic.snv.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_SomaticSniper.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_SomaticSniper.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2773,6 +3073,10 @@ rule vt_SomaticSniper :
         """
 
 rule SomaticSniperBreakMulti :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/SomaticSniper/{seq_name}_vs_{normal}.SomaticSniper.somatic.snv.recode.vcf"
     output:
@@ -2786,18 +3090,23 @@ rule SomaticSniperBreakMulti :
     """
 
 rule LoFreqSomatic :
+    resources:
+        cpus_per_task=8,
+        mem_mb=4000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
         ref_dict=config["genome"]["dict_file"],
         target=config["metadata"]["design"],
+        dbsnp=config["genome"]["known_site"]
     output:
         snp=config["dir"]["base"]+"/{sample}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.LoFreq.somatic.snv.vcf",
         indel=config["dir"]["base"]+"/{sample}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.LoFreq.somatic.indel.vcf"
     container:
         "docker://ngsom/tumorseq"
     benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.Lofreq.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.LoFreqSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2806,7 +3115,7 @@ rule LoFreqSomatic :
 	lofreq indelqual --dindel --ref {input.ref} -o {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}.tumor.dindel.bam {input.paired[0]}
 	samtools index {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}.normal.dindel.bam
 	samtools index {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}.tumor.dindel.bam
-    lofreq somatic --call-indels -n {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}.normal.dindel.bam -t {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}.tumor.dindel.bam -f {input.ref} --threads 8 -l {input.target} -o {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.
+    lofreq somatic --call-indels -n {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}.normal.dindel.bam -t {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}.tumor.dindel.bam -f {input.ref} --threads {resources.cpus_per_task} -l {input.target} -o {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq. -d {input.dbsnp}
     gunzip -f {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.somatic_final.snvs.vcf.gz
     gunzip -f {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.somatic_final.indels.vcf.gz
     mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/LoFreq/{wildcards.seq_name}_vs_{wildcards.normal}.LoFreq.somatic_final.snvs.vcf {output.snp}
@@ -2818,6 +3127,10 @@ rule LoFreqSomatic :
     """
 
 rule vt_LoFreqSomatic_snp :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.LoFreq.somatic.snv.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2825,8 +3138,8 @@ rule vt_LoFreqSomatic_snp :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.LoFreq.somatic.snv.normalized.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_snp_Lofreq.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_snp_Lofreq.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2834,6 +3147,10 @@ rule vt_LoFreqSomatic_snp :
         """
 
 rule vt_LoFreqSomatic_indel :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.LoFreq.somatic.indel.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2841,8 +3158,8 @@ rule vt_LoFreqSomatic_indel :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.LoFreq.somatic.indel.normalized.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}vt_indel_Lofreq.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}vt_indel_Lofreq.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2850,6 +3167,10 @@ rule vt_LoFreqSomatic_indel :
         """
 
 rule GATK_left_align_LoFreqSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         snp=config["dir"]["base"]+"/{sample}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.LoFreq.somatic.snv.vcf",
         indel=config["dir"]["base"]+"/{sample}/SomaticAnalysis/LoFreq/{seq_name}_vs_{normal}.LoFreq.somatic.indel.vcf",
@@ -2864,13 +3185,13 @@ rule GATK_left_align_LoFreqSomatic :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.snp} \
         --split-multi-allelics \
         --O {output.snp}
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.indel} \
         --split-multi-allelics \
@@ -2878,6 +3199,10 @@ rule GATK_left_align_LoFreqSomatic :
         """
 
 rule MuseSomatic :
+    resources:
+        cpus_per_task=8,
+        mem_mb=8000,
+        runtime=4000
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -2890,18 +3215,24 @@ rule MuseSomatic :
     container:
         "docker://ngsom/somatic"
     benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.MuseSomatic.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.Muse2Somatic.txt"
     params:
         base_dir=output_dir
     shell:"""
     #Somatic Variant calling with Muse
-    awk '{{print $1":"$2"-"$3}}' {input.target} > {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}.region_muse.bed
-	MuSE call -O {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}_vs_{wildcards.normal} -f {input.ref} -l {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}.region_muse.bed {input.paired[0]} {input.paired[1]}
-	MuSE sump -I {output.txt} -E -O {output.vcf} -D {input.dbsnp}
-    rm {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}.region_muse.bed
+	/opt/MuSE/MuSE call -n {resources.cpus_per_task} -O {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}_vs_{wildcards.normal} -f {input.ref} {input.paired[0]} {input.paired[1]}
+	/opt/MuSE/MuSE sump -n {resources.cpus_per_task} -I {output.txt} -E -O {output.vcf} -D {input.dbsnp}
+    bgzip -c {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}_vs_{wildcards.normal}.Muse.somatic.snv.vcf > {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}_vs_{wildcards.normal}.Muse.somatic.snv.vcf.gz
+    tabix -p vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}_vs_{wildcards.normal}.Muse.somatic.snv.vcf.gz
+    bcftools view {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}_vs_{wildcards.normal}.Muse.somatic.snv.vcf.gz -R {input.target} > {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}_vs_{wildcards.normal}.Muse.somatic.snv.recode.vcf
+    mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}_vs_{wildcards.normal}.Muse.somatic.snv.recode.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Muse/{wildcards.seq_name}_vs_{wildcards.normal}.Muse.somatic.snv.vcf
     """
 
 rule vt_MuseSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Muse/{seq_name}_vs_{normal}.Muse.somatic.snv.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2909,8 +3240,8 @@ rule vt_MuseSomatic :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Muse/{seq_name}_vs_{normal}.Muse.somatic.snv.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_MuseSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_MuseSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2918,6 +3249,10 @@ rule vt_MuseSomatic :
         """
 
 rule GATK_left_align_MuseSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Muse/{seq_name}_vs_{normal}.Muse.somatic.snv.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2930,7 +3265,7 @@ rule GATK_left_align_MuseSomatic :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -2938,6 +3273,10 @@ rule GATK_left_align_MuseSomatic :
         """
 
 rule StrelkaSomatic :
+    resources:
+        cpus_per_task=8,
+        mem_mb=2000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -2949,14 +3288,14 @@ rule StrelkaSomatic :
     container:
         "docker://ngsom/somatic"
     benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.StrelkaSomatic.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.StrelkaSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
     #Somatic Variant calling with Strelka
     source activate utils
     configureStrelkaSomaticWorkflow.py --exome --normal={input.paired[1]} --tumor={input.paired[0]} --ref={input.ref} --runDir={params.base_dir}/{wildcards.sample}/SomaticAnalysis/Strelka/{wildcards.seq_name}_tmp --callRegions {input.target}.gz
-    {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Strelka/{wildcards.seq_name}_tmp/runWorkflow.py -m local -j 8 ;
+    {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Strelka/{wildcards.seq_name}_tmp/runWorkflow.py -m local -j {resources.cpus_per_task} ;
     gunzip {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Strelka/{wildcards.seq_name}_tmp/results/variants/*.gz ;
     rm {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Strelka/{wildcards.seq_name}_tmp/results/variants/*.gz.tbi ;
     vcftools --vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Strelka/{wildcards.seq_name}_tmp/results/variants/somatic.snvs.vcf --bed {input.target} --recode-INFO-all  --recode --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Strelka/{wildcards.seq_name}_vs_{wildcards.normal}.Strelka.somatic.snv ;
@@ -2967,6 +3306,10 @@ rule StrelkaSomatic :
     """
 
 rule vt_StrelkaSomatic_snp :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.Strelka.somatic.snv.LeftAlign.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2974,8 +3317,8 @@ rule vt_StrelkaSomatic_snp :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.Strelka.somatic.snv.normalized.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_snp_StrelkaSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_snp_StrelkaSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -2983,6 +3326,10 @@ rule vt_StrelkaSomatic_snp :
         """
 
 rule vt_StrelkaSomatic_indel :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.Strelka.somatic.indel.LeftAlign.vcf",
         ref=config["genome"]["fasta_file"]
@@ -2990,8 +3337,8 @@ rule vt_StrelkaSomatic_indel :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Strelka/{seq_name}_vs_{normal}.Strelka.somatic.indel.normalized.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_indel_StrelkaSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_indel_StrelkaSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -3001,13 +3348,17 @@ rule vt_StrelkaSomatic_indel :
 if create_pon is True :
 
     rule CreatePONForMutect2:
+        resources:
+            cpus_per_task=1,
+            mem_mb=72000,
+            runtime=1440
         input: 
             vcfs=expand(config["dir"]["base"]+"/{sample}/Normal/Mutect2/{seq_name}.Mutect2.for.pon.vcf.gz",zip,sample=samples["samples"][samples["type"]=="Normal"],seq_name=SAMPLES_NORMAL),
             ref=config["genome"]["fasta_file"],
             target=config["metadata"]["design"],
         output:
-            output_dir+"/pon.vcf.gz",
-            directory(putput_dir+"/pon_db")
+            pon_vcf=output_dir+"/pon.vcf.gz",
+            pon_db=directory(output_dir+"/pon_db")
         container:
             "docker://broadinstitute/gatk:4.2.2.0"
         params:
@@ -3026,14 +3377,18 @@ if create_pon is True :
             gatk CreateSomaticPanelOfNormals \
             --java-options -Xmx72G \
             -R {input.ref} -V gendb://pon_db \
-            -O {output}
+            -O {output.pon_vcf}
 
         """    
 
 rule Mutect2TumorOnly:
+    resources:
+        cpus_per_task=8,
+        mem_mb=8000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"],
         gnomad=config["genome"]["gnomad_af_only"],
@@ -3044,13 +3399,14 @@ rule Mutect2TumorOnly:
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
     benchmark:
-         "benchmarks/{sample}_{seq_type}_{seq_name}.Mutect2TumorOnly.txt"
+         "benchmark/{sample}_{seq_type}_{seq_name}.Mutect2TumorOnly.txt"
     shell:"""
         # Mutect2 Tumor Only
+        export OMP_NUM_THREADS={resources.cpus_per_task}
         file_name=$(basename {input.bam})
 		name=${{file_name%.sort*}}
         gatk Mutect2 \
-        --java-options -Xmx16G \
+        --java-options -Xmx8G \
         --native-pair-hmm-threads 8 \
         -max-mnp-distance 0 \
         --reference {input.ref} \
@@ -3065,6 +3421,10 @@ rule Mutect2TumorOnly:
 
 #Mutect2 SNV + INDEL GATK 4.2
 rule LearnReadOrientationModelTumorOnly:
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         f1r2=config["dir"]["base"]+"/{sample}/{seq_type}/Mutect2/{seq_name}.Mutect2.tumor_only.f1r2.tar.gz"
     output:
@@ -3075,13 +3435,17 @@ rule LearnReadOrientationModelTumorOnly:
         base_dir=output_dir,
     shell:"""
         gatk LearnReadOrientationModel \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         -I {input.f1r2} \
         -O {output}
 		"""
 
 #Mutect2 SNV + INDEL GATK 4.2
 rule FilterMutect2TumorOnly:
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         model=config["dir"]["base"]+"/{sample}/{seq_type}/Mutect2/{seq_name}.tumor_only.read-orientation-model.tar.gz",
         vcf=config["dir"]["base"]+"/{sample}/{seq_type}/Mutect2/{seq_name}.Mutect2.tumor_only.unfiltered.vcf",
@@ -3095,7 +3459,7 @@ rule FilterMutect2TumorOnly:
         base_dir=output_dir,
     shell:"""
         gatk FilterMutectCalls \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         -R {input.ref} \
         -V {input.vcf} \
         --ob-priors {input.model} \
@@ -3106,6 +3470,10 @@ rule FilterMutect2TumorOnly:
 
 #Mutect2 SNV + INDEL GATK 4.2
 rule Mutect2Somatic:
+    resources:
+        cpus_per_task=8,
+        mem_mb=8000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -3118,13 +3486,16 @@ rule Mutect2Somatic:
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
     benchmark:
-        "benchmarks/{sample}_{seq_name}_{normal}.Mutect2Somatic.txt" 
+        "benchmark/{sample}_{seq_name}_{normal}.Mutect2Somatic.txt"
+    params:
+        interval_padding=0
     shell:"""
         # Mutect2 Somatic
+        export OMP_NUM_THREADS={resources.cpus_per_task}
         file_name=$(basename {input.paired[1]})
 		name=${{file_name%.sort*}}
         gatk Mutect2 \
-        --java-options -Xmx16G \
+        --java-options -Xmx8G \
         --native-pair-hmm-threads 8 \
         --reference {input.ref} \
         -I {input.paired[0]} \
@@ -3133,7 +3504,7 @@ rule Mutect2Somatic:
         --germline-resource {input.gnomad} \
         --genotype-germline-sites true \
         --genotype-pon-sites true \
-        --interval-padding 50 \
+        --interval-padding {params.interval_padding} \
         -pon {input.pon} \
         -L {input.target} \
         --f1r2-tar-gz {output.f1r2} \
@@ -3142,6 +3513,10 @@ rule Mutect2Somatic:
 
 #Mutect2 SNV + INDEL GATK 4.2
 rule LearnReadOrientationModel:
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         f1r2=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.f1r2.tar.gz"
     output:
@@ -3152,13 +3527,17 @@ rule LearnReadOrientationModel:
         base_dir=output_dir,
     shell:"""
         gatk LearnReadOrientationModel \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         -I {input.f1r2} \
         -O {output}
 		"""
 
 #Mutect2 SNV + INDEL GATK 4.2
 rule FilterMutect2:
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         model=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.read-orientation-model.tar.gz",
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.Mutect2.somatic.unfiltered.vcf",
@@ -3173,7 +3552,7 @@ rule FilterMutect2:
         base_dir=output_dir,
     shell:"""
         gatk FilterMutectCalls \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         -R {input.ref} \
         -V {input.vcf} \
         --ob-priors {input.model} \
@@ -3182,6 +3561,10 @@ rule FilterMutect2:
 		 """
 
 rule vt_Mutect2 :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.Mutect2.somatic.filtered.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3189,15 +3572,19 @@ rule vt_Mutect2 :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.Mutect2.somatic.filtered.normalized.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_Mutect2.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_Mutect2.txt"
     params:
         base_dir=output_dir
     shell:"""
-        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - > {output}
+        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - | /opt/vt/vt decompose_blocksub - > {output}
         """
 
 rule GATK_left_align_Mutect2 :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.Mutect2.somatic.filtered.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3210,7 +3597,7 @@ rule GATK_left_align_Mutect2 :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -3218,6 +3605,10 @@ rule GATK_left_align_Mutect2 :
         """
 
 rule Funcotator_mutect2_somatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=16000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.Mutect2.somatic.filtered.LeftAlign.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3240,6 +3631,10 @@ rule Funcotator_mutect2_somatic :
 
 
 rule split_snp_indel_Mutect2 :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         ref=config["genome"]["fasta_file"],
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.Mutect2.somatic.filtered.normalized.vcf"
@@ -3248,16 +3643,20 @@ rule split_snp_indel_Mutect2 :
         indel=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.Mutect2.somatic.indel.normalized.vcf"
     container:
         "docker://broadinstitute/gatk:4.2.2.0"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.split_Mutect2.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.split_Mutect2.txt"
     params:
         base_dir=output_dir
     shell:"""
-    gatk SelectVariants --java-options -Xmx16G -R {input.ref} -V {input.vcf} --select-type-to-include SNP -O {output.snp}
-	gatk SelectVariants --java-options -Xmx16G -R {input.ref} -V {input.vcf} --select-type-to-include INDEL --select-type-to-include MNP -O {output.indel}
+    gatk SelectVariants --java-options -Xmx4G -R {input.ref} -V {input.vcf} --select-type-to-include SNP -O {output.snp}
+	gatk SelectVariants --java-options -Xmx4G -R {input.ref} -V {input.vcf} --select-type-to-include INDEL --select-type-to-include MNP -O {output.indel}
     """
 
 rule VarDictSomatic :
+    resources:
+        cpus_per_task=8,
+        mem_mb=8000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -3268,15 +3667,19 @@ rule VarDictSomatic :
     container:
         "docker://ngsom/tumorseq"
     benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.VarDictSomatic.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.VarDictSomatic.txt"
     params:
         base_dir=output_dir,
         dedup=dedup_option_vardict
     shell:"""
-    VarDict {params.dedup} -th 8 -G {input.ref} -f 0.02 -N {wildcards.seq_name} -r 3 -b "{input.paired[0]}|{input.paired[1]}" -c 1 -S 2 -E 3 -g 4 {input.target} | testsomatic.R | var2vcf_paired.pl -N "{wildcards.seq_name}|{wildcards.normal}" -f 0.02 > {output}
+    VarDict {params.dedup} -th {resources.cpus_per_task} -G {input.ref} -f 0.02 -N {wildcards.seq_name} -r 3 -b "{input.paired[0]}|{input.paired[1]}" -c 1 -S 2 -E 3 -g 4 {input.target} | testsomatic.R | var2vcf_paired.pl -N "{wildcards.seq_name}|{wildcards.normal}" -f 0.02 > {output}
     """
 
 rule vt_VarDictSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.VarDict.somatic.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3284,15 +3687,19 @@ rule vt_VarDictSomatic :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.VarDict.somatic.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_VarDictSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_VarDictSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
-        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - > {output}
+        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - | /opt/vt/vt decompose_blocksub - > {output}
         """
 
 rule GATK_left_align_VarDict :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.VarDict.somatic.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3305,7 +3712,7 @@ rule GATK_left_align_VarDict :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -3313,6 +3720,10 @@ rule GATK_left_align_VarDict :
         """
 
 rule split_snp_indel_VarDict :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.VarDict.somatic.normalized.vcf"
     output:
@@ -3320,8 +3731,8 @@ rule split_snp_indel_VarDict :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarDict/{seq_name}_vs_{normal}.VarDict.somatic.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.split_VarDictSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.split_VarDictSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -3332,6 +3743,10 @@ rule split_snp_indel_VarDict :
         """
 
 rule prepare_pindel_somatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         paired=get_filter_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -3349,6 +3764,10 @@ rule prepare_pindel_somatic :
     """
 
 rule prepare_pindel_somatic_filter :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         paired=get_filter_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -3366,6 +3785,10 @@ rule prepare_pindel_somatic_filter :
     """
 
 rule pindel_somatic :
+    resources:
+        cpus_per_task=4,
+        mem_mb=1000,
+        runtime=1440
     input:
         config=config["dir"]["base"]+"/{sample}/SomaticAnalysis/pindel/{seq_name}_vs_{normal}.pindel.config.txt",
         ref=config["genome"]["fasta_file"]
@@ -3381,8 +3804,8 @@ rule pindel_somatic :
         output_dir+"/{sample}/SomaticAnalysis/pindel/tmp/{seq_name}_vs_{normal}.{chr}.INDEL_RP",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.{chr}.pindel_somatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.{chr}.pindel_somatic.txt"
     params:
         base_dir=output_dir
     shell:
@@ -3391,6 +3814,10 @@ rule pindel_somatic :
         """
 
 rule merge_pindel_filesSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=1000,
+        runtime=1440
     input:
         SI=expand(output_dir+"/{{sample}}/SomaticAnalysis/pindel/tmp/{{seq_name}}_vs_{{normal}}.{chr}.INDEL_SI",chr=CHROMS),
         D=expand(output_dir+"/{{sample}}/SomaticAnalysis/pindel/tmp/{{seq_name}}_vs_{{normal}}.{chr}.INDEL_D",chr=CHROMS),
@@ -3416,6 +3843,10 @@ rule merge_pindel_filesSomatic :
         """
 
 rule pindelFilterSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=1000,
+        runtime=1440
     input:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/pindel/{seq_name}_vs_{normal}.pindel.config.somatic.txt"
     output:
@@ -3430,6 +3861,10 @@ rule pindelFilterSomatic :
         """
 
 rule pindelSomaticFilterRegion :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         vcf=output_dir+"/{sample}/SomaticAnalysis/pindel/{seq_name}_vs_{normal}.INDEL.pindel.somatic.vcf",
         target=config["metadata"]["design"]
@@ -3446,6 +3881,10 @@ rule pindelSomaticFilterRegion :
     """
 
 rule vt_pindelSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=output_dir+"/{sample}/SomaticAnalysis/pindel/{seq_name}_vs_{normal}.pindel.somatic.indel.LeftAlign.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3453,8 +3892,8 @@ rule vt_pindelSomatic :
         output_dir+"/{sample}/SomaticAnalysis/pindel/{seq_name}_vs_{normal}.pindel.somatic.indel.normalized.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_pindel_somatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_pindel_somatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -3462,6 +3901,10 @@ rule vt_pindelSomatic :
         """
 
 rule ScalpelSomatic :
+    resources:
+        cpus_per_task=8,
+        mem_mb=48000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -3472,18 +3915,22 @@ rule ScalpelSomatic :
     container:
         "docker://lethalfang/scalpel:0.5.4"
     benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.ScalpelSomatic.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.ScalpelSomatic.txt"
     params:
         base_dir=output_dir,
         dedup=dedup_option_vardict
     shell:"""
-    /opt/scalpel-0.5.4/scalpel-discovery --somatic --normal {input.paired[1]} --tumor {input.paired[0]} --bed {input.target} --ref {input.ref} --dir {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Scalpel/{wildcards.seq_name}_tmp --numprocs 8 --intarget
+    /opt/scalpel-0.5.4/scalpel-discovery --somatic --normal {input.paired[1]} --tumor {input.paired[0]} --bed {input.target} --ref {input.ref} --dir {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Scalpel/{wildcards.seq_name}_tmp --numprocs {resources.cpus_per_task} --intarget
     /opt/scalpel-0.5.4/scalpel-export --somatic --db  {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Scalpel/{wildcards.seq_name}_tmp/main/somatic.db.dir --bed {input.target} --ref {input.ref} --min-alt-count-tumor 2 --min-vaf-tumor 0.02 --min-coverage-tumor 10 --intarget >  {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Scalpel/{wildcards.seq_name}_vs_{wildcards.normal}.Scalpel.somatic.indel.vcf
     mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Scalpel/{wildcards.seq_name}_vs_{wildcards.normal}.Scalpel.somatic.indel.vcf {output}
     rm -r {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Scalpel/{wildcards.seq_name}_tmp
     """
 
 rule vt_ScalpelSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Scalpel/{seq_name}_vs_{normal}.Scalpel.somatic.indel.LeftAlign.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3491,8 +3938,8 @@ rule vt_ScalpelSomatic :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Scalpel/{seq_name}_vs_{normal}.Scalpel.somatic.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_ScalpelSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_ScalpelSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -3500,6 +3947,10 @@ rule vt_ScalpelSomatic :
         """
 
 rule SeuratSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -3510,12 +3961,12 @@ rule SeuratSomatic :
     container:
         "docker://ngsom/mutect"
     benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.SeuratSomatic.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.SeuratSomatic.txt"
     params:
         base_dir=output_dir,
         dedup=dedup_option_vardict
     shell:"""
-    java -jar /usr/share/java/Seurat-2.5.jar -T Seurat \
+    java -Xmx2G -jar /usr/share/java/Seurat-2.5.jar -T Seurat \
     -R {input.ref} \
     -I:dna_normal {input.paired[1]} \
     -I:dna_tumor {input.paired[0]} \
@@ -3532,6 +3983,10 @@ rule SeuratSomatic :
     """
 
 rule vt_SeuratSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Seurat/{seq_name}_vs_{normal}.Seurat.somatic.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3539,8 +3994,8 @@ rule vt_SeuratSomatic :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Seurat/{seq_name}_vs_{normal}.Seurat.somatic.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_SeuratSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_SeuratSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -3548,6 +4003,10 @@ rule vt_SeuratSomatic :
         """
 
 rule GATK_left_align_SeuratSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Seurat/{seq_name}_vs_{normal}.Seurat.somatic.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3560,7 +4019,7 @@ rule GATK_left_align_SeuratSomatic :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -3568,6 +4027,10 @@ rule GATK_left_align_SeuratSomatic :
         """
 
 rule split_snp_indel_SeuratSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Seurat/{seq_name}_vs_{normal}.Seurat.somatic.normalized.vcf"
     output:
@@ -3575,8 +4038,8 @@ rule split_snp_indel_SeuratSomatic :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Seurat/{seq_name}_vs_{normal}.Seurat.somatic.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.split_SeuratSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.split_SeuratSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -3587,6 +4050,10 @@ rule split_snp_indel_SeuratSomatic :
         """
 
 rule LancetSomatic :
+    resources:
+        cpus_per_task=24,
+        mem_mb=48000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -3595,14 +4062,14 @@ rule LancetSomatic :
     output:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Lancet/{seq_name}_vs_{normal}.Lancet.somatic.vcf"
     container:
-        "docker://ngsom/somatic"
+        "docker://ngsom/lancet"
     benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.LancetSomatic.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.LancetSomatic.txt"
     params:
         base_dir=output_dir,
         dedup=dedup_option_vardict
     shell:"""
-    /opt/lancet/lancet \
+    lancet \
     --tumor {input.paired[0]} \
     --normal {input.paired[1]} \
     --ref {input.ref} \
@@ -3613,10 +4080,14 @@ rule LancetSomatic :
     --min-coverage-tumor 4 \
     --min-coverage-normal 10 \
     --bed {input.target} \
-    --num-threads 24 > {output}
+    --num-threads {resources.cpus_per_task} > {output}
     """
 
 rule vt_Lancet :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Lancet/{seq_name}_vs_{normal}.Lancet.somatic.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3624,15 +4095,19 @@ rule vt_Lancet :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Lancet/{seq_name}_vs_{normal}.Lancet.somatic.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_LancetSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_LancetSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
-        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - > {output}
+        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - | /opt/vt/vt decompose_blocksub - > {output}
         """
 
 rule GATK_left_align_Lancet :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Lancet/{seq_name}_vs_{normal}.Lancet.somatic.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3645,7 +4120,7 @@ rule GATK_left_align_Lancet :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
@@ -3653,6 +4128,10 @@ rule GATK_left_align_Lancet :
         """
 
 rule split_snp_indel_Lancet :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Lancet/{seq_name}_vs_{normal}.Lancet.somatic.normalized.vcf"
     output:
@@ -3660,8 +4139,8 @@ rule split_snp_indel_Lancet :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Lancet/{seq_name}_vs_{normal}.Lancet.somatic.indel.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.split_LancetSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.split_LancetSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -3672,28 +4151,32 @@ rule split_snp_indel_Lancet :
         """
 
 rule VirmidSomatic :
+    resources:
+        cpus_per_task=8,
+        mem_mb=16000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
         ref_dict=config["genome"]["dict_file"],
         target=config["metadata"]["design"],
     output:
-        config["dir"]["base"]+"/{sample}/SomaticAnalysis/Virmid/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall.bam"+".virmid.som.passed.vcf"
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/Virmid/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam."+"virmid.som.passed.vcf"
     container:
         "docker://ngsom/somatic"
     benchmark:
-         "benchmarks/{sample}_{seq_name}.VirmidSomatic.txt"
+        "benchmark/{sample}_{seq_name}.VirmidSomatic.txt"
     params:
         base_dir=output_dir,
         dedup=dedup_option_vardict
     shell:"""
-    java -jar /opt/virmid-1.1.0/Virmid.jar \
+    java -Xmx16G -jar /opt/virmid-1.1.0/Virmid.jar \
     -R {input.ref} \
     -D {input.paired[0]} \
     -N {input.paired[1]} \
     -w {params.base_dir}/{wildcards.sample}/SomaticAnalysis/Virmid \
     -r 150 \
-    -t 8 \
+    -t {resources.cpus_per_task} \
     -c1 10 \
     -C1 1000 \
     -c2 10 \
@@ -3702,8 +4185,12 @@ rule VirmidSomatic :
     """
 
 rule VirmidSomaticFilterRegion :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
-        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Virmid/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall.bam"+".virmid.som.passed.vcf",
+        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Virmid/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam."+"virmid.som.passed.vcf",
         target=config["metadata"]["design"]
     output:
         output_dir+"/{sample}/SomaticAnalysis/Virmid/{seq_name}_vs_{normal}.Virmid.somatic.snv.LeftAlign.vcf",
@@ -3719,6 +4206,10 @@ rule VirmidSomaticFilterRegion :
     """
 
 rule vt_VirmidSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=output_dir+"/{sample}/SomaticAnalysis/Virmid/{seq_name}_vs_{normal}.Virmid.somatic.snv.LeftAlign.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3726,8 +4217,8 @@ rule vt_VirmidSomatic :
         output_dir+"/{sample}/SomaticAnalysis/Virmid/{seq_name}_vs_{normal}.Virmid.somatic.snv.normalized.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_VirmidSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_VirmidSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -3735,6 +4226,10 @@ rule vt_VirmidSomatic :
         """
 
 rule ShimmerSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -3745,7 +4240,7 @@ rule ShimmerSomatic :
     container:
         "docker://ngsom/somatic"
     benchmark:
-         "benchmarks/{sample}_{seq_name}.ShimmerSomatic.txt"
+        "benchmark/{sample}_{seq_name}.ShimmerSomatic.txt"
     params:
         base_dir=output_dir,
         dedup=dedup_option_vardict
@@ -3762,6 +4257,10 @@ rule ShimmerSomatic :
     """
 
 rule vt_Shimmer :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Shimmer/{seq_name}/somatic_diffs.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3769,8 +4268,8 @@ rule vt_Shimmer :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Shimmer/{seq_name}_vs_{normal}.Shimmer.somatic.snv.normalized.vcf"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.vt_ShimmerSomatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_ShimmerSomatic.txt"
     params:
         base_dir=output_dir
     shell:"""
@@ -3778,6 +4277,10 @@ rule vt_Shimmer :
         """
 
 rule GATK_left_align_Shimmer :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Shimmer/{seq_name}/somatic_diffs.vcf",
         ref=config["genome"]["fasta_file"]
@@ -3790,24 +4293,506 @@ rule GATK_left_align_Shimmer :
     shell:"""
         # Left Align
         gatk LeftAlignAndTrimVariants \
-        --java-options -Xmx16G \
+        --java-options -Xmx4G \
         --reference {input.ref} \
         --variant {input.vcf} \
         --split-multi-allelics \
         --O {output}
         """
 
+rule NeuSomatic :
+    resources:
+        cpus_per_task=20,
+        mem_mb=16000,
+        runtime=1440
+    input:
+        paired=get_filter_paired_samples,
+        ref=config["genome"]["fasta_file"],
+        ref_dict=config["genome"]["dict_file"],
+        target=config["metadata"]["design"],
+        dbsnp=config["genome"]["known_site"]
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/NeuSomatic/{seq_name}_vs_{normal}.NeuSomatic.somatic.vcf"
+    container:
+        "docker://msahraeian/neusomatic"
+    benchmark:
+        "benchmark/{sample}_{seq_name}_{normal}.NeuSomatic.txt"
+    params:
+        base_dir=output_dir,
+        dedup=dedup_option_vardict
+    shell:"""
+        python /opt/neusomatic/neusomatic/python/preprocess.py --mode call \
+        --reference {input.ref} \
+        --region_bed {input.target} \
+        --tumor_bam {input.paired[0]} \
+        --normal_bam {input.paired[1]} \
+        --work {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/work_call \
+        --dbsnp_to_filter {input.dbsnp} \
+        --scan_maf 0.01 \
+        --snp_min_af 0.03 \
+        --snp_min_bq 15 \
+        --snp_min_ao 3 \
+        --ins_min_af 0.02 \
+        --del_min_af 0.02 \
+        --min_mapq 10 \
+        --num_threads 20 \
+        --scan_window_size 500 \
+        --max_dp 100000 \
+        --scan_alignments_binary /opt/neusomatic/neusomatic/bin/scan_alignments
+        python /opt/neusomatic/neusomatic/python/call.py \
+        --candidates_tsv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/work_call/dataset/*/candidates*.tsv \
+        --reference {input.ref} \
+        --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/work_call \
+        --checkpoint /opt/neusomatic/neusomatic/models/NeuSomatic_v0.1.4_standalone_SEQC-WGS-GT50-SpikeWGS10.pth \
+        --num_threads 20 \
+        --batch_size 100
+        python /opt/neusomatic/neusomatic/python/postprocess.py \
+        --reference {input.ref} \
+        --tumor_bam {input.paired[0]} \
+        --pred_vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/work_call/pred.vcf \
+        --candidates_vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/work_call/work_tumor/filtered_candidates.vcf \
+        --output_vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.NeuSomatic.somatic.vcf \
+        --work {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/work_call
+    """
+
+rule vt_NeuSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
+    input:
+        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/NeuSomatic/{seq_name}_vs_{normal}.NeuSomatic.somatic.vcf",
+        ref=config["genome"]["fasta_file"]
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/NeuSomatic/{seq_name}_vs_{normal}.NeuSomatic.somatic.normalized.vcf"
+    container:
+        "docker://ngsom/tumorseq"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_ShimmerSomatic.txt"
+    params:
+        base_dir=output_dir
+    shell:"""
+        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - > {output}
+        """
+
+rule split_snp_indel_NeuSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
+    input:
+        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/NeuSomatic/{seq_name}_vs_{normal}.NeuSomatic.somatic.normalized.vcf"
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/NeuSomatic/{seq_name}_vs_{normal}.NeuSomatic.somatic.snv.normalized.vcf",
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/NeuSomatic/{seq_name}_vs_{normal}.NeuSomatic.somatic.indel.normalized.vcf"
+    container:
+        "docker://ngsom/tumorseq"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.split_LancetSomatic.txt"
+    params:
+        base_dir=output_dir
+    shell:"""
+        vcftools --vcf {input.vcf} --keep-only-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.NeuSomatic.somatic.indel.normalized
+        mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.NeuSomatic.somatic.indel.normalized.recode.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.NeuSomatic.somatic.indel.normalized.vcf
+        vcftools --vcf {input.vcf} --remove-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.NeuSomatic.somatic.snv.normalized
+        mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.NeuSomatic.somatic.snv.normalized.recode.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/NeuSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.NeuSomatic.somatic.snv.normalized.vcf
+        """
+
+# rule DeepSomatic :
+#     resources:
+#         cpus_per_task=20,
+#         mem_mb=16000,
+#         runtime=1440
+#     input:
+#         paired=get_paired_samples,
+#         ref=config["genome"]["fasta_file"],
+#         ref_dict=config["genome"]["dict_file"],
+#         target=config["metadata"]["design"],
+#     output:
+#         config["dir"]["base"]+"/{sample}/SomaticAnalysis/DeepSomatic/{seq_name}_vs_{normal}.DeepSomatic.somatic.vcf"
+#     container:
+#         "docker://google/deepsomatic:1.6.1"
+#     benchmark:
+#         "benchmark/{sample}_{seq_name}_{normal}.DeepSomatic.txt"
+#     params:
+#         base_dir=output_dir,
+#         dedup=dedup_option_vardict
+#     shell:"""
+#         run_deepsomatic \
+#         --model_type=WGS \
+#         --ref={input.ref} \
+#         --reads_normal={input.paired[1]} \
+#         --reads_tumor={input.paired[0]} \
+#         --output_vcf={params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.DeepSomatic.somatic.vcf.gz \
+#         --sample_name_tumor="{wildcards.seq_name}" \
+#         --sample_name_normal="{wildcards.normal}" \
+#         --num_shards=20 \
+#         --logging_dir={params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic \
+#         --intermediate_results_dir={params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/tmp \
+#         --regions={input.target}
+#         gunzip {params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.DeepSomatic.somatic.vcf.gz
+#         """
+
+rule DeepSomatic :
+    resources:
+        cpus_per_task=20,
+        mem_mb=16000,
+        runtime=1440
+    input:
+        paired=get_paired_samples,
+        ref=config["genome"]["fasta_file"],
+        ref_dict=config["genome"]["dict_file"],
+        target=config["metadata"]["design"],
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/DeepSomatic/{seq_name}_vs_{normal}.DeepSomatic.somatic.vcf"
+    container:
+        "docker://google/deepsomatic:1.7.0"
+    benchmark:
+        "benchmark/{sample}_{seq_name}_{normal}.DeepSomatic.txt"
+    params:
+        base_dir=output_dir,
+        dedup=dedup_option_vardict
+    shell:"""
+        run_deepsomatic \
+        --model_type=WES \
+        --ref={input.ref} \
+        --reads_normal={input.paired[1]} \
+        --reads_tumor={input.paired[0]} \
+        --output_vcf={params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.DeepSomatic.somatic.vcf.gz \
+        --sample_name_tumor="{wildcards.seq_name}" \
+        --sample_name_normal="{wildcards.normal}" \
+        --num_shards=20 \
+        --logging_dir={params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic \
+        --intermediate_results_dir={params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/tmp \
+        --regions={input.target}
+        gunzip {params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.DeepSomatic.somatic.vcf.gz
+        """
+
+rule vt_DeepSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
+    input:
+        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/DeepSomatic/{seq_name}_vs_{normal}.DeepSomatic.somatic.vcf",
+        ref=config["genome"]["fasta_file"]
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/DeepSomatic/{seq_name}_vs_{normal}.DeepSomatic.somatic.normalized.vcf"
+    container:
+        "docker://ngsom/tumorseq"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_ShimmerSomatic.txt"
+    params:
+        base_dir=output_dir
+    shell:"""
+        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - > {output}
+        """
+
+rule split_snp_indel_DeepSomatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
+    input:
+        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/DeepSomatic/{seq_name}_vs_{normal}.DeepSomatic.somatic.normalized.vcf"
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/DeepSomatic/{seq_name}_vs_{normal}.DeepSomatic.somatic.snv.normalized.vcf",
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/DeepSomatic/{seq_name}_vs_{normal}.DeepSomatic.somatic.indel.normalized.vcf"
+    container:
+        "docker://ngsom/tumorseq"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.split_LancetSomatic.txt"
+    params:
+        base_dir=output_dir
+    shell:"""
+        vcftools --vcf {input.vcf} --keep-only-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.DeepSomatic.somatic.indel.normalized
+        mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.DeepSomatic.somatic.indel.normalized.recode.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.DeepSomatic.somatic.indel.normalized.vcf
+        vcftools --vcf {input.vcf} --remove-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.DeepSomatic.somatic.snv.normalized
+        mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.DeepSomatic.somatic.snv.normalized.recode.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/DeepSomatic/{wildcards.seq_name}_vs_{wildcards.normal}.DeepSomatic.somatic.snv.normalized.vcf
+        """
+
+rule VarNet :
+    resources:
+        cpus_per_task=8,
+        mem_mb=48000,
+        runtime=1440
+    input:
+        paired=get_filter_paired_samples,
+        ref=config["genome"]["fasta_file"],
+        ref_dict=config["genome"]["dict_file"],
+        target=config["metadata"]["design"],
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarNet/{seq_name}_vs_{normal}.VarNet.somatic.vcf"
+    container:
+        "docker://kiranchari/varnet:latest"
+    benchmark:
+        "benchmark/{sample}_{seq_name}_{normal}.VarNet.txt"
+    params:
+        base_dir=output_dir,
+        dedup=dedup_option_vardict
+    shell:"""
+        python /VarNet/filter.py \
+        --sample_name {wildcards.seq_name} \
+        --normal_bam {input.paired[1]} \
+        --tumor_bam {input.paired[0]} \
+        --processes 8 \
+        --output_dir {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarNet \
+        --reference {input.ref} \
+        --region_bed {input.target}
+        python /VarNet/predict.py \
+        --sample_name {wildcards.seq_name} \
+        --normal_bam {input.paired[1]} \
+        --tumor_bam {input.paired[0]} \
+        --processes 8 \
+        --output_dir {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarNet \
+        --reference {input.ref}
+        mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarNet/{wildcards.seq_name}/{wildcards.seq_name}.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarNet/{wildcards.seq_name}_vs_{wildcards.normal}.VarNet.somatic.vcf
+        """
+
+rule vt_VarNet :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
+    input:
+        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarNet/{seq_name}_vs_{normal}.VarNet.somatic.vcf",
+        ref=config["genome"]["fasta_file"]
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarNet/{seq_name}_vs_{normal}.VarNet.somatic.normalized.vcf"
+    container:
+        "docker://ngsom/tumorseq"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_ShimmerSomatic.txt"
+    params:
+        base_dir=output_dir
+    shell:"""
+        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - > {output}
+        """
+
+rule split_snp_indel_VarNet :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
+    input:
+        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarNet/{seq_name}_vs_{normal}.VarNet.somatic.normalized.vcf"
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarNet/{seq_name}_vs_{normal}.VarNet.somatic.snv.normalized.vcf",
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/VarNet/{seq_name}_vs_{normal}.VarNet.somatic.indel.normalized.vcf"
+    container:
+        "docker://ngsom/tumorseq"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.split_LancetSomatic.txt"
+    params:
+        base_dir=output_dir
+    shell:"""
+        vcftools --vcf {input.vcf} --keep-only-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarNet/{wildcards.seq_name}_vs_{wildcards.normal}.VarNet.somatic.indel.normalized
+        mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarNet/{wildcards.seq_name}_vs_{wildcards.normal}.VarNet.somatic.indel.normalized.recode.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarNet/{wildcards.seq_name}_vs_{wildcards.normal}.VarNet.somatic.indel.normalized.vcf
+        vcftools --vcf {input.vcf} --remove-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarNet/{wildcards.seq_name}_vs_{wildcards.normal}.VarNet.somatic.snv.normalized
+        mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarNet/{wildcards.seq_name}_vs_{wildcards.normal}.VarNet.somatic.snv.normalized.recode.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarNet/{wildcards.seq_name}_vs_{wildcards.normal}.VarNet.somatic.snv.normalized.vcf
+        """
+
+rule TNScope :
+    resources:
+        cpus_per_task=8,
+        mem_mb=32000,
+        runtime=1440
+    input:
+        paired=get_paired_samples,
+        ref=config["genome"]["fasta_file"],
+        ref_dict=config["genome"]["dict_file"],
+        target=config["metadata"]["design"],
+        dbsnp=config["genome"]["known_site"],
+        pon=config["mutect2"]["pon"]
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope/{seq_name}_vs_{normal}.TNScope.somatic.vcf"
+    benchmark:
+        "benchmark/{sample}_{seq_name}_{normal}.TNscope.txt"
+    params:
+        base_dir=output_dir,
+        dedup=dedup_option_vardict
+    shell:"""
+        /home/guillea/sentieon-genomics-202308.02/bin/sentieon driver \
+        -t 8 \
+        -r {input.ref} \
+        -i {input.paired[0]} \
+        -i {input.paired[1]} \
+        --algo TNscope \
+        --tumor_sample {wildcards.seq_name} \
+        --normal_sample {wildcards.normal} \
+        --dbsnp {input.dbsnp} \
+        --pon {input.pon} \
+        --min_tumor_lod 10 \
+        {output}
+        """
+
+rule TNScope2 :
+    resources:
+        cpus_per_task=8,
+        mem_mb=32000,
+        runtime=1440
+    input:
+        paired=get_paired_samples,
+        ref=config["genome"]["fasta_file"],
+        ref_dict=config["genome"]["dict_file"],
+        target=config["metadata"]["design"],
+        dbsnp=config["genome"]["known_site"],
+        pon=config["mutect2"]["pon"]
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope2/{seq_name}_vs_{normal}.TNScope.somatic.vcf"
+    benchmark:
+        "benchmark/{sample}_{seq_name}_{normal}.TNscope.txt"
+    params:
+        base_dir=output_dir,
+        dedup=dedup_option_vardict
+    shell:"""
+        /home/guillea/sentieon-genomics-202308.02/bin/sentieon driver \
+        -t 8 \
+        -r {input.ref} \
+        -i {input.paired[0]} \
+        -i {input.paired[1]} \
+        --algo TNscope \
+        --tumor_sample {wildcards.seq_name} \
+        --normal_sample {wildcards.normal} \
+        --dbsnp {input.dbsnp} \
+        --pon {input.pon} \
+        --min_tumor_allele_frac 0.009 \
+        --max_fisher_pv_active 0.05 \
+        --max_normal_alt_cnt 10 \
+        --max_normal_alt_frac 0.01 \
+        --max_normal_alt_qsum 250 \
+        --sv_mask_ext 10 \
+        --prune_factor 0 \
+        --assemble_mode 2 \
+        {output}
+        """
+
+rule TNScope2Filter :
+    resources:
+        cpus_per_task=8,
+        mem_mb=32000,
+        runtime=1440
+    input:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope2/{seq_name}_vs_{normal}.TNScope.somatic.vcf"
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope2/{seq_name}_vs_{normal}.TNScope.somatic.filtered.vcf"
+    benchmark:
+        "benchmark/{sample}_{seq_name}_{normal}.TNscope.txt"
+    params:
+        base_dir=output_dir,
+        dedup=dedup_option_vardict
+    shell:"""
+        /home/guillea/sentieon-genomics-202308.02/bin/sentieon pyexec /home/guillea/tnscope_filter.py \
+        -v {input} \
+        --tumor_sample {wildcards.seq_name} \
+        -x tissue_panel \
+        --min_tumor_af 0.0095 \
+        --min_qual 20 \
+        {output}
+        """
+
+rule vt_TNScope :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
+    input:
+        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope/{seq_name}_vs_{normal}.TNScope.somatic.vcf",
+        ref=config["genome"]["fasta_file"]
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope/{seq_name}_vs_{normal}.TNScope.somatic.normalized.vcf"
+    container:
+        "docker://ngsom/tumorseq"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_ShimmerSomatic.txt"
+    params:
+        base_dir=output_dir
+    shell:"""
+        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - > {output}
+        """
+
+rule vt_TNScope2 :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
+    input:
+        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope2/{seq_name}_vs_{normal}.TNScope.somatic.filtered.vcf",
+        ref=config["genome"]["fasta_file"]
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope2/{seq_name}_vs_{normal}.TNScope.somatic.filtered.normalized.vcf"
+    container:
+        "docker://ngsom/tumorseq"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.vt_ShimmerSomatic.txt"
+    params:
+        base_dir=output_dir
+    shell:"""
+        /opt/vt/vt decompose -s {input.vcf} | /opt/vt/vt normalize -n -r {input.ref} - > {output}
+        """
+
+rule split_snp_indel_TNScope :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
+    input:
+        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope/{seq_name}_vs_{normal}.TNScope.somatic.normalized.vcf",
+        target=config["metadata"]["design"]
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope/{seq_name}_vs_{normal}.TNScope.somatic.snv.normalized.vcf",
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope/{seq_name}_vs_{normal}.TNScope.somatic.indel.normalized.vcf"
+    container:
+        "docker://ngsom/tumorseq"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.split_LancetSomatic.txt"
+    params:
+        base_dir=output_dir
+    shell:"""
+        vcftools --vcf {input.vcf} --keep-only-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.indel.normalized --bed {input.target}
+        mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.indel.normalized.recode.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.indel.normalized.vcf
+        vcftools --vcf {input.vcf} --remove-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.snv.normalized --bed {input.target}
+        mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.snv.normalized.recode.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.snv.normalized.vcf
+        """
+
+rule split_snp_indel_TNScope2 :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
+    input:
+        vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope2/{seq_name}_vs_{normal}.TNScope.somatic.filtered.normalized.vcf",
+        target=config["metadata"]["design"]
+    output:
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope2/{seq_name}_vs_{normal}.TNScope.somatic.snv.filtered.normalized.vcf",
+        config["dir"]["base"]+"/{sample}/SomaticAnalysis/TNScope2/{seq_name}_vs_{normal}.TNScope.somatic.indel.filtered.normalized.vcf"
+    container:
+        "docker://ngsom/tumorseq"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.split_LancetSomatic.txt"
+    params:
+        base_dir=output_dir
+    shell:"""
+        vcftools --vcf {input.vcf} --keep-only-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope2/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.indel.filtered.normalized --bed {input.target}
+        mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope2/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.indel.filtered.normalized.recode.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope2/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.indel.filtered.normalized.vcf
+        vcftools --vcf {input.vcf} --remove-indels --recode --recode-INFO-all --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope2/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.snv.filtered.normalized --bed {input.target}
+        mv {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope2/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.snv.filtered.normalized.recode.vcf {params.base_dir}/{wildcards.sample}/SomaticAnalysis/TNScope2/{wildcards.seq_name}_vs_{wildcards.normal}.TNScope.somatic.snv.filtered.normalized.vcf
+        """
 
 #Merge vcf SNP Germline
 rule merge_snv_caller_germline :
+    resources:
+        cpus_per_task=1,
+        mem_mb=1000,
+        runtime=1440
     input:
         input_files=input_germline_snv
     output:
         output_dir+"/{sample}/Normal/{seq_name}.germline.snv.merge.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.merge_snv_caller_germline.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.merge_snv_caller_germline.txt"
     params:
         base_dir=output_dir,
         args=input_germline_snv_params,
@@ -3819,14 +4804,18 @@ rule merge_snv_caller_germline :
         """
 
 rule merge_indel_caller_germline :
+    resources:
+        cpus_per_task=1,
+        mem_mb=1000,
+        runtime=1440
     input:
         input_files=input_germline_indel
     output:
         output_dir+"/{sample}/Normal/{seq_name}.germline.indel.merge.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.merge_indel_caller_germline.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.merge_indel_caller_germline.txt"
     params:
         base_dir=output_dir,
         args=input_germline_indel_params,
@@ -3839,14 +4828,18 @@ rule merge_indel_caller_germline :
 
 #Merge vcf SNP Germline
 rule merge_snv_caller_somatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=1000,
+        runtime=1440
     input:
         input_files=input_somatic_snv
     output:
         output_dir+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.somatic.snv.merge.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.merge_snv_caller_somatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.merge_snv_caller_somatic.txt"
     params:
         base_dir=output_dir,
         args=input_somatic_snv_params,
@@ -3858,14 +4851,18 @@ rule merge_snv_caller_somatic :
         """
 
 rule merge_indel_caller_somatic :
+    resources:
+        cpus_per_task=1,
+        mem_mb=1000,
+        runtime=1440
     input:
         input_files=input_somatic_indel
     output:
         output_dir+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.somatic.indel.merge.vcf",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.merge_indel_caller_somatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.merge_indel_caller_somatic.txt"
     params:
         base_dir=output_dir,
         args=input_somatic_indel_params,
@@ -3877,18 +4874,22 @@ rule merge_indel_caller_somatic :
         """
 
 rule filter_snv_germline :
+    resources:
+        cpus_per_task=8,
+        mem_mb=2000,
+        runtime=1440
     input:
         vcf=output_dir+"/{sample}/Normal/{seq_name}.germline.snv.merge.vcf",
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"]
     output:
         output_dir+"/{sample}/Normal/{seq_name}.germline.snv.merge.filtered.vcf",
         output_dir+"/{sample}/Normal/{seq_name}.germline.snv.merge.stats"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.filter_snv_germline.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.filter_snv_germline.txt"
     params:
         base_dir=output_dir
     shell:
@@ -3898,18 +4899,22 @@ rule filter_snv_germline :
         """
 
 rule filter_indel_germline :
+    resources:
+        cpus_per_task=8,
+        mem_mb=2000,
+        runtime=1440
     input:
         vcf=output_dir+"/{sample}/Normal/{seq_name}.germline.indel.merge.vcf",
-        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/Normal/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"]
     output:
         output_dir+"/{sample}/Normal/{seq_name}.germline.indel.merge.filtered.vcf",
         output_dir+"/{sample}/Normal/{seq_name}.germline.indel.merge.stats"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}.filter_indel_germline.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}.filter_indel_germline.txt"
     params:
         base_dir=output_dir
     shell:
@@ -3919,6 +4924,10 @@ rule filter_indel_germline :
         """
 
 rule filter_snv_somatic :
+    resources:
+        cpus_per_task=8,
+        mem_mb=2000,
+        runtime=1440
     input:
         vcf=output_dir+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.somatic.snv.merge.vcf",
         bam=get_tumor_bam,
@@ -3928,8 +4937,8 @@ rule filter_snv_somatic :
         output_dir+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.somatic.snv.merge.stats"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.filter_snv_somatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.filter_snv_somatic.txt"
     params:
         base_dir=output_dir
     shell:
@@ -3939,6 +4948,10 @@ rule filter_snv_somatic :
         """
 
 rule filter_indel_somatic :
+    resources:
+        cpus_per_task=8,
+        mem_mb=2000,
+        runtime=1440
     input:
         vcf=output_dir+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.somatic.indel.merge.vcf",
         bam=get_tumor_bam,
@@ -3948,8 +4961,8 @@ rule filter_indel_somatic :
         output_dir+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.somatic.indel.merge.stats"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.filter_indel_somatic.txt"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.filter_indel_somatic.txt"
     params:
         base_dir=output_dir
     shell:
@@ -3960,6 +4973,10 @@ rule filter_indel_somatic :
 
 #SAllelic copy number estimation with Sequenza
 rule bam2seqz :
+    resources:
+        cpus_per_task=1,
+        mem_mb=16000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -3970,8 +4987,8 @@ rule bam2seqz :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.gz"
     container:
         "docker://ngsom/somatic"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.bam2seqz"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.bam2seqz"
     params:
         base_dir=output_dir,
     shell:"""
@@ -3985,14 +5002,18 @@ rule bam2seqz :
     """
 
 rule seqz_binning :
+    resources:
+        cpus_per_task=1,
+        mem_mb=16000,
+        runtime=1440
     input:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.gz"
     output:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.bin50.gz"
     container:
         "docker://ngsom/somatic"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.seqz_binning"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.seqz_binning"
     params:
         base_dir=output_dir,
     shell:"""
@@ -4000,14 +5021,18 @@ rule seqz_binning :
     """
 
 rule sequenza :
+    resources:
+        cpus_per_task=1,
+        mem_mb=16000,
+        runtime=1440
     input:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.bin50.gz"
     output:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Sequenza/{seq_name}_vs_{normal}.seqz.bin50.gz_segments.txt"
     container:
         "docker://ngsom/bioconductor"
-    benchmark:
-         "benchmarks/{sample}_{seq_name}_{normal}.sequenza"
+    #benchmark:
+         #"benchmark{sample}_{seq_name}_{normal}.sequenza"
     params:
         base_dir=output_dir,
     shell:"""
@@ -4015,6 +5040,10 @@ rule sequenza :
     """
 
 rule IntervalFilePureCN :
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         target=config["metadata"]["design"],
         ref=config["genome"]["fasta_file"],
@@ -4038,15 +5067,21 @@ rule IntervalFilePureCN :
     """
 
 rule CoveragePureCN :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         interval=config["dir"]["base"]+"/baits_interval.txt",
         ref=config["genome"]["fasta_file"],
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
     output:
         config["dir"]["base"]+"/{sample}/{seq_type}/PureCN/{seq_name}.sort.RG.dedup.recall_coverage_loess.txt.gz"
     container:
         "docker://ngsom/bioconductor"
+    benchmark:
+        "benchmark/{sample}_{seq_type}_{seq_name}.CoveragePureCN"
     params:
         base_dir=output_dir,
     shell:"""
@@ -4061,6 +5096,10 @@ if create_normal_db is True :
 
 
     rule CreateNormalVCF:
+        resources:
+            cpus_per_task=1,
+            mem_mb=16000,
+            runtime=1440
         input: 
             pon=config["mutect2"]["pon"] if not create_pon else config["dir"]["base"]+"/pon.vcf.gz",
             ref=config["genome"]["fasta_file"],
@@ -4082,6 +5121,10 @@ if create_normal_db is True :
         """
 
     rule CreateNormalDBForPureCN:
+        resources:
+            cpus_per_task=1,
+            mem_mb=4000,
+            runtime=1440
         input: 
             normal_coverage=expand(config["dir"]["base"]+"/{sample}/Normal/PureCN/{seq_name}.sort.RG.dedup.recall_coverage_loess.txt.gz",zip,sample=samples["samples"][samples["type"]=="Normal"],seq_name=SAMPLES_NORMAL),
             ref=config["genome"]["fasta_file"],
@@ -4107,7 +5150,12 @@ if create_normal_db is True :
             --assay {params.assay_name}
         """ 
 
+#see https://github.com/lima1/PureCN/issues/320
 rule PureCN :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         interval=config["dir"]["base"]+"/baits_interval.txt",
         vcf_tumor=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Mutect2/{seq_name}_vs_{normal}.Mutect2.somatic.filtered.vcf",
@@ -4118,11 +5166,14 @@ rule PureCN :
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/PureCN/{seq_name}_vs_{normal}_dnacopy.seg"
     container:
         "docker://ngsom/bioconductor"
+    benchmark:
+        "benchmark/{sample}_{seq_name}_vs_{normal}.PureCN"
     params:
         base_dir=output_dir,
         genome_version=config["genome"]["version"]
     shell:"""
     Rscript /usr/local/lib/R/site-library/PureCN/extdata/PureCN.R \
+    --min-base-quality 20 \
     --out {params.base_dir}/{wildcards.sample}/SomaticAnalysis/PureCN \
     --tumor {input.paired[0]} \
     --sampleid {wildcards.seq_name}_vs_{wildcards.normal} \
@@ -4138,6 +5189,10 @@ rule PureCN :
 
 #Copy number with Varscan2
 rule VarScan2CopyNumber :
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -4152,12 +5207,16 @@ rule VarScan2CopyNumber :
         base_dir=output_dir,
     shell:"""
     cd {params.base_dir}/{wildcards.sample}/SomaticAnalysis/VarScan2CN/
-    samtools mpileup -q 1 -f {input.ref} {input.paired[1]} {input.paired[0]} | java -Xmx16G -jar /usr/share/java/VarScan.v2.3.9.jar copynumber varScan --mpileup 1
-    java -Xmx16G -jar /usr/share/java/VarScan.v2.3.9.jar copyCaller output.copynumber --output-file {output}
+    samtools mpileup -q 1 -f {input.ref} {input.paired[1]} {input.paired[0]} | java -Xmx4G -jar /usr/share/java/VarScan.v2.3.9.jar copynumber varScan --mpileup 1
+    java -Xmx4G -jar /usr/share/java/VarScan.v2.3.9.jar copyCaller output.copynumber --output-file {output}
     """
 
 #Run delly somatic
 rule iCallSV :
+    resources:
+        cpus_per_task=1,
+        mem_mb=16000,
+        runtime=1440
     input:
         paired=get_paired_samples,
         ref=config["genome"]["fasta_file"],
@@ -4177,12 +5236,16 @@ rule iCallSV :
 
 #Delly VCF to tab
 rule vcf2tab :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Delly/{seq_name}_vs_{normal}.Delly.somatic.sv.vcf",
     output:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Delly/{seq_name}_vs_{normal}.Delly.somatic.sv.tab",
-    conda:
-        env_file_sv
+    container:
+        "docker://srikarchamala/icallsv:1.2"
     params:
         base_dir=output_dir
     shell:"""
@@ -4193,12 +5256,16 @@ rule vcf2tab :
 
 #Filter Delly VCF
 rule filterDellyCalls :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         vcf=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Delly/{seq_name}_vs_{normal}.Delly.somatic.sv.vcf",
     output:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Delly/{seq_name}_vs_{normal}.Delly.somatic.sv.stats",
-    conda:
-        env_file_sv
+    container:
+        "docker://srikarchamala/icallsv:1.2"
     params:
         base_dir=output_dir
     shell:"""
@@ -4207,6 +5274,10 @@ rule filterDellyCalls :
 
 #Annot Delly SV
 rule iAnnotSV :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         tab=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Delly/{seq_name}_vs_{normal}.Delly.somatic.sv.tab",
         ref_file=config["iAnnotSV"]["ref_file"],
@@ -4219,8 +5290,8 @@ rule iAnnotSV :
         all_txt=config["iAnnotSV"]["all_canonical_txt"]
     output:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/Delly/{seq_name}_vs_{normal}.Delly_Annotated.txt",
-    conda:
-        env_file_sv
+    container:
+        "docker://srikarchamala/icallsv:1.2"
     params:
         base_dir=output_dir
     shell:
@@ -4243,13 +5314,17 @@ rule iAnnotSV :
 
 #Merge Delly Annot and stat
 rule MergeDellyAnnotAndStat :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         annot=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Delly/{seq_name}_vs_{normal}.Delly_Annotated.txt",
         stat=config["dir"]["base"]+"/{sample}/SomaticAnalysis/Delly/{seq_name}_vs_{normal}.Delly.somatic.sv.stats",
     output:
         config["dir"]["base"]+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.Delly.somatic.sv.result",
-    conda:
-        env_file_sv
+    container:
+        "docker://srikarchamala/icallsv:1.2"
     params:
         base_dir=output_dir
     shell:"""
@@ -4258,6 +5333,10 @@ rule MergeDellyAnnotAndStat :
 
 #Somatic annotation
 rule SomaticAnnotation:
+    resources:
+        cpus_per_task=8,
+        mem_mb=8000,
+        runtime=1440
     input:
         snp_vcf=output_dir+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.somatic.snv.merge.filtered.vcf",
         snp_stats=output_dir+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.somatic.snv.merge.stats",
@@ -4269,7 +5348,7 @@ rule SomaticAnnotation:
     container:
         "docker://ngsom/tumorseq"
     benchmark:
-        "benchmarks/{sample}_{seq_name}_{normal}.Annovar.txt"
+        "benchmark/{sample}_{seq_name}_{normal}.Annovar.txt"
     params:
         base_dir=output_dir,
         annovar_db=annovar_db,
@@ -4288,6 +5367,10 @@ rule SomaticAnnotation:
 
 #Germline Annotation
 rule GermlineAnnotation:
+    resources:
+        cpus_per_task=8,
+        mem_mb=8000,
+        runtime=1440
     input:
         snv_vcf=output_dir+"/{sample}/Normal/{seq_name}.germline.snv.merge.filtered.vcf",
         snv_stats=output_dir+"/{sample}/Normal/{seq_name}.germline.snv.merge.stats",
@@ -4298,8 +5381,8 @@ rule GermlineAnnotation:
         config["dir"]["base"]+"/{sample}/Normal/{seq_name}.germline.indel.result"
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-        "benchmarks/{sample}_{seq_name}.AnnovarGermline.txt"
+    #benchmark:
+        #"benchmark{sample}_{seq_name}.AnnovarGermline.txt"
     params:
         base_dir=output_dir,
         annovar_db=annovar_db,
@@ -4317,11 +5400,15 @@ rule GermlineAnnotation:
     """
 
 rule BedToInterval:
+    resources:
+        cpus_per_task=1,
+        mem_mb=2000,
+        runtime=1440
     input:
         ref_dict=config["genome"]["dict_file"],
         target=config["metadata"]["design"],
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam"
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam"
     output:
         config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/target.interval"
     params:
@@ -4330,16 +5417,20 @@ rule BedToInterval:
         "docker://ngsom/tumorseq"
     shell:
         """
-        java -Xmx16G -jar /usr/share/java/picard.jar BedToIntervalList \
+        java -Xmx2G -jar /usr/share/java/picard.jar BedToIntervalList \
         -I {input.target} \
         -O {output} \
         -SD {input.ref_dict}
         """
 
 rule HsMetrics:
+    resources:
+        cpus_per_task=1,
+        mem_mb=4000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/target.interval"
     output:
@@ -4348,10 +5439,11 @@ rule HsMetrics:
         base_dir=output_dir
     container:
         "docker://ngsom/tumorseq"
-    "benchmarks/{sample}_{seq_type}_{seq_name}.HsMetrics.txt"
+    benchmark:
+        "benchmark/{sample}_{seq_type}_{seq_name}.HsMetrics.txt"
     shell:
         """
-        java -Xmx16G -jar /usr/share/java/picard.jar CollectHsMetrics \
+        java -Xmx4G -jar /usr/share/java/picard.jar CollectHsMetrics \
         -I {input.bam} \
         -O {output} \
         -BAIT_INTERVALS {input.target} \
@@ -4360,9 +5452,13 @@ rule HsMetrics:
 
 #Run qualimap (QC)
 rule qualimap:
+    resources:
+        cpus_per_task=12,
+        mem_mb=64000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         ref=config["genome"]["fasta_file"],
         target=config["metadata"]["design"],
     output:
@@ -4373,7 +5469,7 @@ rule qualimap:
     container:
         "docker://ngsom/tumorseq"
     benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.qualimap.txt"
+        "benchmark/{sample}_{seq_type}_{seq_name}.qualimap.txt"
     shell:
         """
         awk '{{print $1"\t"$2"\t"$3"\t"$4"\t.\t." }}' {input.target} > {params.base_dir}/{wildcards.sample}/{wildcards.seq_type}/{wildcards.seq_name}.target.bed
@@ -4383,9 +5479,13 @@ rule qualimap:
         """
 
 rule CoverageUniformity :
+    resources:
+        cpus_per_task=1,
+        mem_mb=72000,
+        runtime=1440
     input:
-        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam.bai",
-        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+"recall."+"bam",
+        index=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam.bai",
+        bam=config["dir"]["base"]+"/{sample}/{seq_type}/{seq_name}"+tag_process_mb+"sort"+tag_process_uniq+"RG"+tag_process_dedup+tag_process_bqsr+"bam",
         target=config["metadata"]["design"],
         chrLength=config["genome"]["chrLength_file"],
     output:
@@ -4394,7 +5494,7 @@ rule CoverageUniformity :
     container:
         "docker://ngsom/tumorseq"
     benchmark:
-        "benchmarks/{sample}_{seq_type}_{seq_name}.CoverageUniformity.txt"
+        "benchmark/{sample}_{seq_type}_{seq_name}.CoverageUniformity.txt"
     params:
         base_dir=output_dir
     shell:
@@ -4405,6 +5505,10 @@ rule CoverageUniformity :
         """
 
 rule collect_metrics :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         qualimap_report=config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/qualimapReport.html",
         cov_uni=config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/{seq_name}.cov.uniformity",
@@ -4422,19 +5526,23 @@ rule collect_metrics :
     shell:
         """
         source activate utils
-        workflow/scripts/collect_metrics2.py {input.qualimap_report} {input.cov_uni} {input.bait_bias} {input.adapt_bias} {input.error} {input.fastqc} {output}
+        workflow/scripts/collect_metrics2.py {input.qualimap_report} {input.cov_uni} {input.bait_bias} {input.adapt_bias} {input.error} {input.fastqc} {input.hsmetrics} {output}
         """
 
 #Merge snv somatic results from different samples
 rule mergeSomaticSNVResult :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         input_merge_snv
     output:
         config["dir"]["base"]+"/somatic.snv.filtered.txt",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-        "benchmarks/mergeSomaticSNVResult.txt"
+    #benchmark:
+        #"benchmarkmergeSomaticSNVResult.txt"
     params:
         base_dir=output_dir
     shell:
@@ -4452,14 +5560,18 @@ rule mergeSomaticSNVResult :
 
 #Merge indel somatic results from different samples
 rule mergeSomaticINDELResult :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         input_merge_indel
     output:
         config["dir"]["base"]+"/somatic.indel.filtered.txt",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-        "benchmarks/mergeSomaticINDELResult.txt"
+    #benchmark:
+        #"benchmarkmergeSomaticINDELResult.txt"
     params:
         base_dir=output_dir
     shell:
@@ -4477,6 +5589,10 @@ rule mergeSomaticINDELResult :
 
 #Merge Indel SV result
 rule mergeSVResultFiles :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         expand(config["dir"]["base"]+"/{sample}/SomaticAnalysis/{seq_name}_vs_{normal}.Delly.somatic.sv.result",zip,tumor=TUMOR, normal=NORMAL, seq_name=SAMPLES_TUMOR)
     output:
@@ -4490,14 +5606,18 @@ rule mergeSVResultFiles :
 
 #Merge snv germline results from different samples
 rule mergeGermlineSNVResult :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         expand(config["dir"]["base"]+"/{sample}/Normal/{seq_name}.germline.snv.result",zip,sample=samples["samples"][samples["type"]=="Normal"],seq_name=SAMPLES_NORMAL)
     output:
         config["dir"]["base"]+"/germline.snv.filtered.txt",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-        "benchmarks/mergeGermlineSNVResult.txt"
+    #benchmark:
+        #"benchmarkmergeGermlineSNVResult.txt"
     params:
         base_dir=output_dir
     shell:
@@ -4515,14 +5635,18 @@ rule mergeGermlineSNVResult :
 
 #Merge indel germline results from different samples
 rule mergeGermlineINDELResult :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         expand(config["dir"]["base"]+"/{sample}/Normal/{seq_name}.germline.indel.result",zip,sample=samples["samples"][samples["type"]=="Normal"],seq_name=SAMPLES_NORMAL)
     output:
         config["dir"]["base"]+"/germline.indel.filtered.txt",
     container:
         "docker://ngsom/tumorseq"
-    benchmark:
-        "benchmarks/mergeGermlineINDELResult.txt"
+    #benchmark:
+        #"benchmarkmergeGermlineINDELResult.txt"
     params:
         base_dir=output_dir
     shell:
@@ -4540,6 +5664,10 @@ rule mergeGermlineINDELResult :
 
 #Merge QC result
 rule multiQC :
+    resources:
+        cpus_per_task=1,
+        mem_mb=8000,
+        runtime=1440
     input:
         qualimap=expand(config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/raw_data_qualimapReport",zip,sample=samples["samples"],seq_type=samples["type"],seq_name=SEQ_LIST),
         hs_metrics=expand(config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/{seq_name}.Hsmetrics",zip,sample=samples["samples"],seq_type=samples["type"],seq_name=SEQ_LIST),
@@ -4550,14 +5678,19 @@ rule multiQC :
         "docker://ewels/multiqc"
     params:
         base_dir=output_dir,
-        out=output_dir+output_analysis
+        out=output_dir+output_analysis,
+        config=config["multi_qc"]["config"]
     shell:
         """
-        multiqc -c /shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY/multiqc_config.yaml {input.qualimap} {input.hs_metrics} {input.fastqc_zip} --outdir {params.out} --quiet
+        multiqc -c {params.config} {input.qualimap} {input.hs_metrics} {input.fastqc_zip} --outdir {params.out} --quiet
         """
 
 #Merge QC result
 rule mergeQC :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         expand(config["dir"]["base"]+"/{sample}/{seq_type}/report_{seq_name}/{seq_name}.bam.qc",zip,sample=samples["samples"],seq_type=samples["type"],seq_name=SEQ_LIST)
     output:
@@ -4573,6 +5706,10 @@ rule mergeQC :
 
 #Merge MSIsensor result
 rule mergeMSI :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         input_merge_msi
     output:
@@ -4589,6 +5726,10 @@ rule mergeMSI :
 
 #Get import files, ready to be load in oncodb web app
 rule getImportFiles :
+    resources:
+        cpus_per_task=1,
+        mem_mb=100,
+        runtime=1440
     input:
         somatic_snv=config["dir"]["base"]+"/somatic.snv.filtered.txt",
         somatic_indel=config["dir"]["base"]+"/somatic.indel.filtered.txt",
