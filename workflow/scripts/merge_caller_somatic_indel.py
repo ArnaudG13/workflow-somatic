@@ -95,8 +95,15 @@ def parse_VarDictindels(vcf):
 				status = info[7]
 				status = status.split(";")[0]
 				status = status.split("=")[1]
+				pval = info[7].split(";")[9]
+				pval = pval.split("=")[1]
+				mq = info[ind_tumor].split(":")[14]
+				if (float(pval) < 0.05 and float(mq) > 55) :
+					filt2 = ""
+				else :
+					filt2 = "LowQual"
 				qual = info[5]
-				filt = status
+				filt = status + filt2
 				indels[chrid] = {}
 				indels[chrid]['ad_normal']=ad_sample_normal
 				indels[chrid]['ad_tumor']=ad_sample_tumor			
@@ -306,6 +313,75 @@ def parse_Lancetindels(vcf):
 	
 	return {'indels':indels}
 
+def parse_DeepSomaticindels(vcf):
+	indels = {}
+	datacolumn = {}
+	for line in open(vcf, 'r'):
+		line=line.strip()
+		if not line.startswith("#"):
+			info=line.split("\t")
+			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
+			ad_sample_normal ="."
+			ad_sample_tumor = info[ind_tumor].split(":")[3]
+			qual = info[5]
+			filt = info[6]
+			indels[chrid] = {}
+			indels[chrid]['ad_normal']=ad_sample_normal
+			indels[chrid]['ad_tumor']=ad_sample_tumor			
+			indels[chrid]['qual']=qual
+			indels[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+
+	return {'indels':indels}
+
+def parse_NeuSomaticindels(vcf):
+	indels = {}
+	datacolumn = {}
+	for line in open(vcf, 'r'):
+		line=line.strip()
+		if not line.startswith("#"):
+			info=line.split("\t")
+			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
+			ad_sample_normal ="."
+			ro = info[9].split(":")[2]
+			ao = info[9].split(":")[3]
+			ad_sample_tumor = str(ro)+","+str(ao)
+			qual = info[5]
+			filt = info[6]
+			indels[chrid] = {}
+			indels[chrid]['ad_normal']=ad_sample_normal
+			indels[chrid]['ad_tumor']=ad_sample_tumor			
+			indels[chrid]['qual']=qual
+			indels[chrid]['filter']=filt
+
+	return {'indels':indels}
+
+
+def parse_VarNetindels(vcf):
+	indels = {}
+	datacolumn = {}
+	for line in open(vcf, 'r'):
+		line=line.strip()
+		if not line.startswith("#"):
+			info=line.split("\t")
+			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
+			ad_sample_normal ="."
+			ro = info[9].split(":")[2]
+			ao = info[9].split(":")[3]
+			ad_sample_tumor = str(ro)+","+str(ao)
+			qual = info[5]
+			filt = info[6]
+			indels[chrid] = {}
+			indels[chrid]['ad_normal']=ad_sample_normal
+			indels[chrid]['ad_tumor']=ad_sample_tumor			
+			indels[chrid]['qual']=qual
+			indels[chrid]['filter']=filt
+
+	return {'indels':indels}
+
 def get_af(ad):
 
 	try :
@@ -318,7 +394,7 @@ def get_af(ad):
 		af = numpy.nan
 	return af
 
-def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, scalpel_indels, seurat_indels ,strelka_indels, vardict_indels, varscan2_indels, lancet_indels, output, n_concordant):
+def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, scalpel_indels, seurat_indels ,strelka_indels, vardict_indels, varscan2_indels, lancet_indels, deepsomatic_indels, neusomatic_indels, varnet_indels, output, n_concordant):
 	all_indels = list()
 	sf = open(output,"w")
 	sf.write("%s\n" %("##fileformat=VCFv4.2"))
@@ -353,6 +429,15 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 		all_indels = all_indels + list(vardict_indels['indels'].keys())
 	if varscan2_indels is not None :
 		sf.write("%s\n" %("##FILTER=<ID=Varscan2,Description=\"Called by Varscan2\">"))
+	if deepsomatic_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=DeepSomatic,Description=\"Called by DeepSomatic\">"))
+		all_indels = all_indels + list(deepsomatic_indels['indels'].keys())
+	if neusomatic_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=NeuSomatic,Description=\"Called by NeuSomatic\">"))
+		all_indels = all_indels + list(neusomatic_indels['indels'].keys())
+	if varnet_indels is not None :
+		sf.write("%s\n" %("##FILTER=<ID=VarNet,Description=\"Called by VarNet\">"))
+		all_indels = all_indels + list(varnet_indels['indels'].keys())
 	sf.write("%s\n" %("##INFO=<ID=VAF_NORMAL,Number=1,Type=Float,Description=\"Median vaf between callers in normal\">"))
 	sf.write("%s\n" %("##INFO=<ID=VAF_TUMOR,Number=1,Type=Float,Description=\"Median vaf between callers in tumor\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADP1,Number=R,Type=Integer,Description=\"Allelic depths reported by FreeBayes for the ref and alt alleles in the order listed\">"))
@@ -365,6 +450,9 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 	sf.write("%s\n" %("##FORMAT=<ID=ADVC,Number=R,Type=Integer,Description=\"Allelic depths reported by Vardict for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADVS2,Number=R,Type=Integer,Description=\"Allelic depths reported by Varscan2 for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADLA,Number=R,Type=Integer,Description=\"Allelic depths reported by Lancet for the ref and alt alleles in the order listed\">"))
+	sf.write("%s\n" %("##FORMAT=<ID=ADDS,Number=R,Type=Integer,Description=\"Allelic depths reported by DeepSomatic for the ref and alt alleles in the order listed\">"))
+	sf.write("%s\n" %("##FORMAT=<ID=ADNS,Number=R,Type=Integer,Description=\"Allelic depths reported by NeuSomatic for the ref and alt alleles in the order listed\">"))
+	sf.write("%s\n" %("##FORMAT=<ID=ADVN,Number=R,Type=Integer,Description=\"Allelic depths reported by VarNet for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('#CHROM', 'POS','ID', 'REF', 'ALT','QUAL', 'FILTER', 'INFO','FORMAT', "TUMOR", "NORMAL"))
 	all_indels = sorted(set(all_indels))
 	for indels in all_indels :
@@ -399,6 +487,15 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 		if lancet_indels is not None :
 			if indels in lancet_indels['indels'] :
 				vcfinfo['lancet']=indels
+		if deepsomatic_indels is not None :
+			if indels in deepsomatic_indels['indels'] :
+				vcfinfo['deepsomatic']=indels
+		if neusomatic_indels is not None :
+			if indels in neusomatic_indels['indels'] :
+				vcfinfo['neusomatic']=indels
+		if varnet_indels is not None :
+			if indels in varnet_indels['indels'] :
+				vcfinfo['varnet']=indels
 		called_by = list(vcfinfo.keys())
 		if all(value == vcfinfo[called_by[0]] for value in vcfinfo.values()):
 			format=''
@@ -563,6 +660,36 @@ def mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, 
 						nb_callers_pass += 1
 						callers=callers+'Lancet|'
 
+				elif c=='deepsomatic':
+					format=format+'ADSS:'
+					gf_normal=gf_normal+deepsomatic_indels['indels'][indels]['ad_normal']+':'
+					af_normal.append(get_af(deepsomatic_indels['indels'][indels]['ad_normal']))
+					gf_tumor=gf_tumor+deepsomatic_indels['indels'][indels]['ad_tumor']+':'
+					af_tumor.append(get_af(deepsomatic_indels['indels'][indels]['ad_tumor']))
+					if deepsomatic_indels['indels'][indels]['filter']=="PASS":
+						nb_callers_pass += 1
+						callers=callers+'DeepSomatic|'
+
+				elif c=='neusomatic':
+					format=format+'ADNS:'
+					gf_normal=gf_normal+neusomatic_indels['indels'][indels]['ad_normal']+':'
+					af_normal.append(get_af(neusomatic_indels['indels'][indels]['ad_normal']))
+					gf_tumor=gf_tumor+neusomatic_indels['indels'][indels]['ad_tumor']+':'
+					af_tumor.append(get_af(neusomatic_indels['indels'][indels]['ad_tumor']))
+					if neusomatic_indels['indels'][indels]['filter']=="PASS":
+						nb_callers_pass += 1
+						callers=callers+'NeuSomatic|'
+
+				elif c=='varnet':
+					format=format+'ADVN:'
+					gf_normal=gf_normal+varnet_indels['indels'][indels]['ad_normal']+':'
+					af_normal.append(get_af(varnet_indels['indels'][indels]['ad_normal']))
+					gf_tumor=gf_tumor+varnet_indels['indels'][indels]['ad_tumor']+':'
+					af_tumor.append(get_af(varnet_indels['indels'][indels]['ad_tumor']))
+					if varnet_indels['indels'][indels]['filter']=="PASS":
+						nb_callers_pass += 1
+						callers=callers+'VarNet|'
+
 			if nb_callers_pass > 0 :
 				vaf_tumor = round(numpy.nanmedian(af_tumor),4) * 100
 				vaf_normal = round(numpy.nanmedian(af_normal),4) * 100
@@ -597,6 +724,9 @@ parser.add_argument('--Seurat', type=str, required=False)
 parser.add_argument('--Strelka', type=str, required=False)
 parser.add_argument('--VarDict', type=str, required=False)
 parser.add_argument('--VarScan2', type=str, required=False)
+parser.add_argument('--DeepSomatic', type=str, required=False)
+parser.add_argument('--NeuSomatic', type=str, required=False)
+parser.add_argument('--VarNet', type=str, required=False)
 parser.add_argument('--tumor', type=str, required=True)
 parser.add_argument('--normal', type=str, required=True)
 parser.add_argument('-N',type=int, required=True, help="Number of vote to be concordant")
@@ -666,9 +796,27 @@ if args.VarScan2 is not None :
 else :
 	varscan2_indels = None
 
+if args.DeepSomatic is not None :
+	deepsomatic_indels = parse_DeepSomaticindels(args.DeepSomatic)
+	n_vc = n_vc + 1
+else :
+	deepsomatic_indels = None
+
+if args.NeuSomatic is not None :
+	neusomatic_indels = parse_NeuSomaticindels(args.NeuSomatic)
+	n_vc = n_vc + 1
+else :
+	neusomatic_indels = None
+
+if args.VarNet is not None :
+	varnet_indels = parse_VarNetindels(args.VarNet)
+	n_vc = n_vc + 1
+else :
+	varnet_indels = None
+
 output = args.output
 
 if n_concordant > n_vc :
 	sys.exit("N concordant cannot be greater than the number of variant caller")
 
-mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, scalpel_indels, seurat_indels ,strelka_indels, vardict_indels, varscan2_indels, lancet_indels, output, n_concordant)
+mergeindels(freebayes_indels, lofreq_indels, mutect2_indels, pindel_indels, scalpel_indels, seurat_indels ,strelka_indels, vardict_indels, varscan2_indels, lancet_indels, deepsomatic_indels, neusomatic_indels, varnet_indels, output, n_concordant)

@@ -206,8 +206,15 @@ def parse_VarDictSNV(vcf):
 			status = info[7]
 			status = status.split(";")[0]
 			status = status.split("=")[1]
+			pval = info[7].split(";")[9]
+			pval = pval.split("=")[1]
+			mq = info[ind_tumor].split(":")[14]
+			if (float(pval) < 0.05 and float(mq) > 55) :
+				filt2 = ""
+			else :
+				filt2 = "LowQual"
 			qual = info[5]
-			filt = status
+			filt = status + filt2
 			snvs[chrid] = {}
 			snvs[chrid]['ad_normal']=ad_sample_normal
 			snvs[chrid]['ad_tumor']=ad_sample_tumor			
@@ -382,6 +389,75 @@ def parse_VirmidSNV(vcf):
 
 	return {'snvs':snvs}
 
+def parse_DeepSomaticSNV(vcf):
+	snvs = {}
+	datacolumn = {}
+	for line in open(vcf, 'r'):
+		line=line.strip()
+		if not line.startswith("#"):
+			info=line.split("\t")
+			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
+			ad_sample_normal ="."
+			ad_sample_tumor = info[ind_tumor].split(":")[3]
+			qual = info[5]
+			filt = info[6]
+			snvs[chrid] = {}
+			snvs[chrid]['ad_normal']=ad_sample_normal
+			snvs[chrid]['ad_tumor']=ad_sample_tumor			
+			snvs[chrid]['qual']=qual
+			snvs[chrid]['filter']=filt
+		else :
+			if line.startswith("#CHROM"):
+				header=line.split("\t")
+				ind_tumor = header.index(args.tumor)
+
+	return {'snvs':snvs}
+
+def parse_NeuSomaticSNV(vcf):
+	snvs = {}
+	datacolumn = {}
+	for line in open(vcf, 'r'):
+		line=line.strip()
+		if not line.startswith("#"):
+			info=line.split("\t")
+			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
+			ad_sample_normal ="."
+			ro = info[9].split(":")[2]
+			ao = info[9].split(":")[3]
+			ad_sample_tumor = str(ro)+","+str(ao)
+			qual = info[5]
+			filt = info[6]
+			snvs[chrid] = {}
+			snvs[chrid]['ad_normal']=ad_sample_normal
+			snvs[chrid]['ad_tumor']=ad_sample_tumor			
+			snvs[chrid]['qual']=qual
+			snvs[chrid]['filter']=filt
+
+	return {'snvs':snvs}
+
+
+def parse_VarNetSNV(vcf):
+	snvs = {}
+	datacolumn = {}
+	for line in open(vcf, 'r'):
+		line=line.strip()
+		if not line.startswith("#"):
+			info=line.split("\t")
+			chrid = info[0] + '\t' + info[1] + '\t' + info[3] + '\t' + info[4]
+			ad_sample_normal ="."
+			ro = info[9].split(":")[2]
+			ao = info[9].split(":")[3]
+			ad_sample_tumor = str(ro)+","+str(ao)
+			qual = info[5]
+			filt = info[6]
+			snvs[chrid] = {}
+			snvs[chrid]['ad_normal']=ad_sample_normal
+			snvs[chrid]['ad_tumor']=ad_sample_tumor			
+			snvs[chrid]['qual']=qual
+			snvs[chrid]['filter']=filt
+
+	return {'snvs':snvs}
+
 def get_af(ad):
 	try :
 		ref_count = float(ad.split(",")[0])
@@ -393,7 +469,7 @@ def get_af(ad):
 		af = numpy.nan
 	return af
 
-def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seurat_snv, sniper_snv, strelka_snv, vardict_snv, varscan2_snv, lancet_snv, shimmer_snv, virmid_snv, output, n_concordant):
+def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seurat_snv, sniper_snv, strelka_snv, vardict_snv, varscan2_snv, lancet_snv, shimmer_snv, virmid_snv, deepsomatic_snv, neusomatic_snv, varnet_snv, output, n_concordant):
 	all_snvs = list()
 	sf = open(output,"w")
 	sf.write("%s\n" %("##fileformat=VCFv4.2"))
@@ -438,6 +514,15 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 	if virmid_snv is not None :
 		sf.write("%s\n" %("##FILTER=<ID=Virmid,Description=\"Called by Virmid\">"))
 		all_snvs = all_snvs + list(virmid_snv['snvs'].keys())
+	if deepsomatic_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=DeepSomatic,Description=\"Called by DeepSomatic\">"))
+		all_snvs = all_snvs + list(deepsomatic_snv['snvs'].keys())
+	if neusomatic_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=NeuSomatic,Description=\"Called by NeuSomatic\">"))
+		all_snvs = all_snvs + list(neusomatic_snv['snvs'].keys())
+	if varnet_snv is not None :
+		sf.write("%s\n" %("##FILTER=<ID=VarNet,Description=\"Called by VarNet\">"))
+		all_snvs = all_snvs + list(varnet_snv['snvs'].keys())
 	sf.write("%s\n" %("##INFO=<ID=VAF_NORMAL,Number=1,Type=Float,Description=\"Median vaf between callers in normal\">"))
 	sf.write("%s\n" %("##INFO=<ID=VAF_TUMOR,Number=1,Type=Float,Description=\"Median vaf between callers in tumor\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADP1,Number=R,Type=Integer,Description=\"Allelic depths reported by FreeBayes for the ref and alt alleles in the order listed\">"))
@@ -453,6 +538,9 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 	sf.write("%s\n" %("##FORMAT=<ID=ADLA,Number=R,Type=Integer,Description=\"Allelic depths reported by Lancet for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADSH,Number=R,Type=Integer,Description=\"Allelic depths reported by Shimmer for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\n" %("##FORMAT=<ID=ADVI,Number=R,Type=Integer,Description=\"Allelic depths reported by Virmid for the ref and alt alleles in the order listed\">"))
+	sf.write("%s\n" %("##FORMAT=<ID=ADDS,Number=R,Type=Integer,Description=\"Allelic depths reported by DeepSomatic for the ref and alt alleles in the order listed\">"))
+	sf.write("%s\n" %("##FORMAT=<ID=ADNS,Number=R,Type=Integer,Description=\"Allelic depths reported by NeuSomatic for the ref and alt alleles in the order listed\">"))
+	sf.write("%s\n" %("##FORMAT=<ID=ADVN,Number=R,Type=Integer,Description=\"Allelic depths reported by VarNet for the ref and alt alleles in the order listed\">"))
 	sf.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('#CHROM', 'POS','ID', 'REF', 'ALT','QUAL', 'FILTER', 'INFO','FORMAT', "TUMOR", "NORMAL"))
 
 	all_snvs = sorted(set(all_snvs))
@@ -498,6 +586,15 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 		if virmid_snv is not None :
 			if snv in virmid_snv['snvs'] :
 				vcfinfo['virmid']=snv
+		if deepsomatic_snv is not None :
+			if snv in deepsomatic_snv['snvs'] :
+				vcfinfo['deepsomatic']=snv
+		if neusomatic_snv is not None :
+			if snv in neusomatic_snv['snvs'] :
+				vcfinfo['neusomatic']=snv
+		if varnet_snv is not None :
+			if snv in varnet_snv['snvs'] :
+				vcfinfo['varnet']=snv
 		called_by = list(vcfinfo.keys())
 		if all(value == vcfinfo[called_by[0]] for value in vcfinfo.values()):
 			format=''
@@ -700,6 +797,36 @@ def mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seura
 					nb_callers_pass += 1
 					callers=callers+'Virmid|'
 
+				elif c=='deepsomatic':
+					format=format+'ADSS:'
+					gf_normal=gf_normal+deepsomatic_snv['snvs'][snv]['ad_normal']+':'
+					af_normal.append(get_af(deepsomatic_snv['snvs'][snv]['ad_normal']))
+					gf_tumor=gf_tumor+deepsomatic_snv['snvs'][snv]['ad_tumor']+':'
+					af_tumor.append(get_af(deepsomatic_snv['snvs'][snv]['ad_tumor']))
+					if deepsomatic_snv['snvs'][snv]['filter']=="PASS":
+						nb_callers_pass += 1
+						callers=callers+'DeepSomatic|'
+
+				elif c=='neusomatic':
+					format=format+'ADNS:'
+					gf_normal=gf_normal+neusomatic_snv['snvs'][snv]['ad_normal']+':'
+					af_normal.append(get_af(neusomatic_snv['snvs'][snv]['ad_normal']))
+					gf_tumor=gf_tumor+neusomatic_snv['snvs'][snv]['ad_tumor']+':'
+					af_tumor.append(get_af(neusomatic_snv['snvs'][snv]['ad_tumor']))
+					if neusomatic_snv['snvs'][snv]['filter']=="PASS":
+						nb_callers_pass += 1
+						callers=callers+'NeuSomatic|'
+
+				elif c=='varnet':
+					format=format+'ADVN:'
+					gf_normal=gf_normal+varnet_snv['snvs'][snv]['ad_normal']+':'
+					af_normal.append(get_af(varnet_snv['snvs'][snv]['ad_normal']))
+					gf_tumor=gf_tumor+varnet_snv['snvs'][snv]['ad_tumor']+':'
+					af_tumor.append(get_af(varnet_snv['snvs'][snv]['ad_tumor']))
+					if varnet_snv['snvs'][snv]['filter']=="PASS":
+						nb_callers_pass += 1
+						callers=callers+'VarNet|'
+
 			if nb_callers_pass > 0 : 
 				vaf_tumor = round(numpy.nanmedian(af_tumor),4) * 100
 				vaf_normal = round(numpy.nanmedian(af_normal),4) * 100
@@ -738,6 +865,9 @@ parser.add_argument('--Strelka', type=str, required=False)
 parser.add_argument('--VarDict', type=str, required=False)
 parser.add_argument('--VarScan2', type=str, required=False)
 parser.add_argument('--Virmid', type=str, required=False)
+parser.add_argument('--DeepSomatic', type=str, required=False)
+parser.add_argument('--NeuSomatic', type=str, required=False)
+parser.add_argument('--VarNet', type=str, required=False)
 parser.add_argument('--tumor', type=str, required=True)
 parser.add_argument('--normal', type=str, required=True)
 parser.add_argument('-N',type=int, required=True, help="Number of vote to be concordant")
@@ -825,9 +955,27 @@ if args.Virmid is not None :
 else :
 	virmid_snv = None
 
+if args.DeepSomatic is not None :
+	deepsomatic_snv = parse_DeepSomaticSNV(args.DeepSomatic)
+	n_vc = n_vc + 1
+else :
+	deepsomatic_snv = None
+
+if args.NeuSomatic is not None :
+	neusomatic_snv = parse_NeuSomaticSNV(args.NeuSomatic)
+	n_vc = n_vc + 1
+else :
+	neusomatic_snv = None
+
+if args.VarNet is not None :
+	varnet_snv = parse_VarNetSNV(args.VarNet)
+	n_vc = n_vc + 1
+else :
+	varnet_snv = None
+
 output = args.output
 
 if n_concordant > n_vc :
 	sys.exit("N concordant cannot be greater than the number of variant caller")
 
-mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seurat_snv, sniper_snv, strelka_snv, vardict_snv, varscan2_snv, lancet_snv, shimmer_snv, virmid_snv, output, n_concordant)
+mergeSNV(freebayes_snv, lofreq_snv, muse_snv, mutect_snv, mutect2_snv, seurat_snv, sniper_snv, strelka_snv, vardict_snv, varscan2_snv, lancet_snv, shimmer_snv, virmid_snv, deepsomatic_snv, neusomatic_snv, varnet_snv, output, n_concordant)

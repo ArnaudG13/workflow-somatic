@@ -284,6 +284,8 @@ def mergeindels(freebayes_indels, hc_indels, lofreq_indels, mutect2_indels, pisc
 		sf.write("%s\n" %("##FILTER=<ID=Varscan2,Description=\"Called by Varscan2\""))
 		all_indels = all_indels + list(varscan2_indels['indels'].keys())
 	sf.write("%s\n" %("##INFO=<ID=VAF,Number=1,Type=Float,Description=\"Median vaf between callers\""))
+	if mutect2_indels is not None :
+		sf.write("%s\n" %("##INFO=<ID=TLOD,Number=1,Type=Float,Description=\"Log 10 likelihood ratio score of variant existing versus not existing\""))
 	sf.write("%s\n" %("##FORMAT=<ID=ADP1,Number=R,Type=Integer,Description=\"Allelic depths reported by FreeBayes for the ref and alt alleles in the order listed\""))
 	sf.write("%s\n" %("##FORMAT=<ID=ADHC,Number=R,Type=Integer,Description=\"Allelic depths reported by HaplotypeCaller for the ref and alt alleles in the order listed\""))
 	sf.write("%s\n" %("##FORMAT=<ID=ADLF,Number=R,Type=Integer,Description=\"Allelic depths reported by LoFreq for the ref and alt alleles in the order listed\""))
@@ -333,6 +335,7 @@ def mergeindels(freebayes_indels, hc_indels, lofreq_indels, mutect2_indels, pisc
 			format=''
 			gf_sample=''
 			callers=''
+			info=''
 			nb_callers_pass=0
 			af = []
 			for c in called_by :
@@ -389,7 +392,8 @@ def mergeindels(freebayes_indels, hc_indels, lofreq_indels, mutect2_indels, pisc
 					af.append(get_af(mutect2_indels['indels'][indels]['ad']))
 					if not (f1 or f2 or f3 or f4 or f5 or f6 or f7 or f8 or f9) :
 						nb_callers_pass += 1
-						callers=callers+'Mutect2|'
+						callers=callers+'Mutect2'+'('+mutect2_indels['indels'][indels]['filter']+')'+'|'
+						info=info+';'+'TLOD='+mutect2_indels['indels'][indels]['qual']
 				elif c=='pisces':
 					filter1=re.compile('q30')
 					filter2=re.compile('SB')
@@ -507,7 +511,7 @@ def mergeindels(freebayes_indels, hc_indels, lofreq_indels, mutect2_indels, pisc
 					filt =  "CONCORDANT|"+filt
 				else :
 					filt = "DISCORDANT|"+filt
-				info = "VAF="+str(vaf)
+				info = "VAF="+str(vaf)+info
 				format = format[:-1]
 				gf_sample = gf_sample[:-1]
 				qual=nb_callers_pass
@@ -546,7 +550,7 @@ if args.HaplotypeCaller is not None :
 	hc_indels = parse_HaplotypeCallerindels(args.HaplotypeCaller)
 	n_vc = n_vc + 1
 else :
-	HC_indels = None
+	hc_indels = None
 
 if args.LoFreq is not None :
 	lofreq_indels = parse_LoFreqindels(args.LoFreq)

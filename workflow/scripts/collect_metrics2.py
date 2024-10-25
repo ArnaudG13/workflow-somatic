@@ -15,7 +15,8 @@ input_file_error_summary = sys.argv[5]
 #input_file_cont_table = sys.argv[6]
 input_file_fastqc1 = sys.argv[6]
 input_file_fastqc2 = sys.argv[7]
-output = sys.argv[8]
+input_file_picard = sys.argv[8]
+output = sys.argv[9]
 
 file_in_bamqc = open(input_file_bam_qc,"r")
 file_in_cov = open(input_file_cov,"r")
@@ -25,8 +26,10 @@ file_in_error_summary = open(input_file_error_summary,"r")
 #file_in_cont_table = open(input_file_cont_table,"r")
 file_in_fastqc1 = open(input_file_fastqc1,"r")
 file_in_fastqc2 = open(input_file_fastqc2,"r")
+file_in_picard = open(input_file_picard,"r")
 output_file = open(output,"w")
 file = file_in_bamqc.read()
+file_picard = file_in_picard.readlines()
 
 name = re.search("<td class=column1>(BAM file: )</td>\s<td class=column2>(.*)</td>",file).group(2)
 nb_reads = re.search("<td class=column1>(Number of reads)</td>\s<td class=column2>(.*)</td>",file).group(2)
@@ -95,7 +98,11 @@ ct = lines_error_sum[12].split("\t")[5].strip(" \t\n\r")
 #cont = lines_cont[1].split("\t")[1]
 #cont_error = lines_cont[1].split("\t")[2].strip(" \t\n\r")
 
-output_file.write(name+"\t"+format_nb_reads+"\t"+mapped_reads_global+"\t"+unmapped_reads+"\t"+mapped_reads_in_region+"\t"+read_stats+"\t"+region_size+"\t"+coverage+"\t"+mapping_quality+"\t"+error_rate+"\t"+insert_size+"\t"+dup_reads+"\t"+str(cov_uni)+"\t"+str(Deamination)+"\t"+str(OxoG)+"\t"+str(Cref)+"\t"+str(Gref)+"\t"+str(ac)+"\t"+str(ag)+"\t"+str(at)+"\t"+str(ca)+"\t"+str(cg)+"\t"+str(ct)+"\n")
+#Parse picard RNAseqMetrics
+picard_col = file_picard[6]
+picard_records = file_picard[7]
+
+output_file.write(name+"\t"+format_nb_reads+"\t"+mapped_reads_global+"\t"+unmapped_reads+"\t"+mapped_reads_in_region+"\t"+read_stats+"\t"+region_size+"\t"+coverage+"\t"+mapping_quality+"\t"+error_rate+"\t"+insert_size+"\t"+dup_reads+"\t"+str(cov_uni)+"\t"+str(Deamination)+"\t"+str(OxoG)+"\t"+str(Cref)+"\t"+str(Gref)+"\t"+str(ac)+"\t"+str(ag)+"\t"+str(at)+"\t"+str(ca)+"\t"+str(cg)+"\t"+str(ct)+"\t"+picard_records)
 
 file_in_bamqc.close()
 file_in_cov.close()
