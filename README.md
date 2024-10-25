@@ -18,8 +18,8 @@ A Snakemake workflow for the analysis of somatic variant (SNVs and indels) and c
 
 ### Dependencies
 
-* singularity >= 3.5.3 https://github.com/sylabs/singularity
-* snakemake >= 6.5.0 https://snakemake.readthedocs.io/en/stable/
+* singularity >= 3.7.1 https://github.com/sylabs/singularity
+* snakemake >= 7.25.0 https://snakemake.readthedocs.io/en/stable/
 
 ### Config and log files
 
