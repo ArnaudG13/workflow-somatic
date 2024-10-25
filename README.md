@@ -9,8 +9,10 @@ A Snakemake workflow for the analysis of somatic variant (SNVs and indels) and c
 * Alignment (BWA mem)
 * Deduplication (option)
 * BQSR (option)
-* somatic SNVs (13 callers) and indels (10 callers)
-* germline SNVs (6 callers) and indels (8 callers)
+* somatic SNVs, up to 16 callers [Muse, Mutect2, Lofreq, Virmid, NeuSomatic, DeepSomatic, VarNet, Mutect, Strelka, Varscan2, Seurat, FreeBayes, Vardict, Lancet, SomaticSniper, Shimmer]
+* somatic indels, up to 13 callers [NeuSomatic, DeepSomatic, Mutect2, Strelka, Lancet, VarNet, Lofreq, VarScan2, pindel, Vardict, Seurat, FreeBayes, Scalpel]
+* germline SNVs, up to 6 callers [FreeBayes, HaplotypeCaller, Pisces, Platypus, Strelka, VarScan2]
+* germline indels, up to 8 callers [FreeBayes, HaplotypeCaller, pindel, Pisces, Platypus, Scalpel, Strelka, VarScan2]
 * VCF merging and majority rule with the scripts workflow/scripts/merge_caller_somatic.py and workflow/scripts/merge_caller_somatic_indel.py
 * Variants annotations (Annovar)
 
@@ -54,9 +56,9 @@ snakemake \
 
 ## Develop with
 
-* [Python](https://www.python.org/) - Language de programmation Python
-* [bash](http://git.savannah.gnu.org/cgit/bash.git) - Language de programmation Bash
-* [snakemake](https://bitbucket.org/johanneskoester/snakemake/wiki/Home) - Gestionnaire de workflow snakemake
+* [Python](https://www.python.org/) 
+* [bash](http://git.savannah.gnu.org/cgit/bash.git)
+* [snakemake](https://bitbucket.org/johanneskoester/snakemake/wiki/Home)
 
 ## Author
 
