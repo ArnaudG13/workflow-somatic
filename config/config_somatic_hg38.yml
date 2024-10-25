@@ -3,43 +3,36 @@
 
   author: "Arnaud Guille"
 
-  env1: "/shared/home/aguille/snakefiles/envs/somatic_analysis_environment2.yml"
-  env2: "/shared/home/aguille/snakefiles/envs/somatic_seq_env_py3.yml"
-  env3: "/shared/home/aguille/snakefiles/envs/somatic_analysis_environment_java_jdk.yml"
-  env_file_sv: "/shared/home/aguille/snakefiles/envs/iAnnotSV_env.yml"
-  env_file_gatk: "/shared/home/aguille/snakefiles/envs/gatk_env.yml"
-  env_optitype: "/shared/home/aguille/snakefiles/envs/optitype.yml"
-
   genome:
     organism: "Homo Sapiens"
     version: "hg38"
     size: "3e9"
-    fasta_file: "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.fa"
-    dict_file: "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.dict"
-    chrLength_file: "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/sizes.genome"
-    known_site: "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Annotation/dbsnp_138.hg38.vcf.gz"
-    cosmic: "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Annotation/CosmicCodingMutsV95.hg38.vcf"
-    hla_ref: "/shared/projects/pmngs/human_genome_hg19/sequence/hla_reference_dna.fasta"
-    map_file: "/shared/projects/pmngs/human_genome_hg19/annot/hg19_chr.map"
-    exac_common: "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Annotation/somatic-hg38_small_exac_common_3.hg38.vcf.gz"
-    gnomad_af_only: "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Annotation/somatic-hg38_af-only-gnomad.hg38.vcf.gz"
-    gc_file: "/shared/projects/pmngs/human_genome_hg19/annot/hg19.gc50Base.wig.gz"
-    genome_dir: "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta"
+    fasta_file: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/fix/genome.masked.fa"
+    dict_file: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/fix/genome.masked.dict"
+    chrLength_file: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/fix/sizes.genome.masked"
+    known_site: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Annotation/dbsnp_138.hg38.vcf.gz"
+    cosmic: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Annotation/CosmicCodingMutsV95.hg38.vcf"
+    hla_ref: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Sequence/HLARef/hla_reference_dna.fasta"
+    map_file: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Annotation/hg38_chr.map"
+    exac_common: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Annotation/somatic-hg38_small_exac_common_3.hg38.vcf.gz"
+    gnomad_af_only: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Annotation/somatic-hg38_af-only-gnomad.hg38.vcf.gz"
+    genome_dir: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta"
+    gc_file: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Annotation/hg38.genome_gc50.wig.gz"
 
   metadata:
-    design: "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Annotation/SureSelect_XTHS_All_Exon_V8_Covered.bed"
-    design_name: "Exome_V8"
+    design: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Annotation/Exome_V6_UTR_SureSelect.bed"
+    design_name: "Exome_V6"
     seq_type: "pe"
-    analysis_sheet : "/shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY/samples.tsv"
-    date: "23-23-06"
+    analysis_sheet : "/scratch/guillea/Seqc2_3/samples.tsv"
+    date: "24-05-10"
     center: "IPC"
     platform: "illumina"
     application: "Target"
-    microsat: "/shared/ifbstor1/projects/pmngs/Homo_sapiens/UCSC/hg38/Annotation/microsatellites.list"
+    microsat: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Annotation/microsatellites.list"
 
   dir:
-    base: "/shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY"
-    fastq_dir: "/shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY/fastq"
+    base: "/scratch/guillea/Seqc2_3"
+    fastq_dir: "/scratch/guillea/Seqc2_3/fastq"
 
   tools:
     paired: "1"
@@ -47,32 +40,26 @@
     molecular_barcode: "0"
     uniq : "0"
     dedup : "1"
+    bqsr : "1"
     ffpe : "0"
     mapping: "bwamem"
     sv_calling: ""
-    snv_calling_somatic: ['Mutect2']
-    indel_calling_somatic: ['Mutect2']
-    snv_calling_germline: ['FreeBayes', 'HaplotypeCaller','Pisces','Platypus','Strelka','VarScan2']
-    indel_calling_germline: ['FreeBayes', 'HaplotypeCaller', 'pindel', 'Pisces', 'Platypus', 'Scalpel', 'Strelka', 'VarScan2']
-    n_concordant_somatic_snv: 0
-    n_concordant_somatic_indel: 0
+    snv_calling_somatic: ['FreeBayes', 'Lancet', 'LoFreq', 'Muse', 'Mutect', 'Mutect2', 'Seurat', 'Shimmer', 'SomaticSniper', 'Strelka', 'VarDict', 'VarScan2', 'Virmid','DeepSomatic','NeuSomatic','VarNet']
+    indel_calling_somatic: ['FreeBayes', 'Lancet', 'LoFreq', 'Mutect2', 'pindel', 'Seurat', 'Scalpel', 'Strelka', 'VarDict', 'VarScan2','DeepSomatic','NeuSomatic','VarNet']
+    snv_calling_germline: ['FreeBayes']
+    indel_calling_germline: ['FreeBayes']
+    n_concordant_somatic_snv: 4
+    n_concordant_somatic_indel: 4
     n_concordant_germline_snv: 0
     n_concordant_germline_indel: 0
     mutect2_tumor_only: "1"
-  gatk:
-      jar : "/shared/home/aguille/GenomeAnalysisTK.jar"
 
   mutect:
-      jar : "/shared/home/aguille/mutect-1.1.7.jar"
       max_alt_allele_in_normal : "0.05"
       max_alt_allele_in_normal_count : "5"
 
   annovar:
-      hg38_db : "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Annotation/annovar_0823/humandb/"
-
-  jsm:
-      prior_file : "/shared/home/aguille/snakefiles/config/priors.cfg"
-      init_file : "/shared/home/aguille/snakefiles/config/params.cfg"
+      hg38_db : "/scratch/guillea/Homo_sapiens/UCSC/hg38/Annotation/annovar_0823/humandb/"
 
   varscan2:
       min_coverage : "10"
@@ -85,22 +72,22 @@
       min_alt_count : "2"
 
   mutect2:
-      pon: "/shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY/pon.vcf.gz"
-      pon_db: "/shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY/pon_db"
+      pon: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Annotation/somatic-hg38_1000g_pon.hg38.vcf.gz"
+      pon_db: "/scratch/guillea/projet_WES_BIDIFLY_hg38/pon_db"
       create_pon: "0"
   
   GATK4_CNA:
       run: "0"
-      pon_cna: "/shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY/cnvponC.pon.hdf5"
-      genome_dict : "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome_cna_gatk4.dict"
+      pon_cna: "/scratch/guillea/projet_WES_BIDIFLY_hg38/cnvponC.pon.hdf5"
+      genome_dict : "/scratch/guillea/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome_cna_gatk4.dict"
       create_pon_cna : "0"
 
   PureCN:
       run: "1"
-      mappability: "/shared/projects/pmngs/Homo_sapiens/UCSC/hg38/Annotation/GCA_000001405.15_GRCh38_no_alt_analysis_set_100.bw"
-      normal_db: "/shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY/test/normal_DB/normalDB_agilent_v8_hg38_hg38.rds"
-      mapping_bias : "/shared/projects/pmngs/projet_seq/projet_WES_BIDIFLY/test/normal_DB/mapping_bias_agilent_v8_hg38_hg38.rds"
-      create_normal_db : "1"
+      mappability: "/scratch/guillea/Homo_sapiens/UCSC/hg38/Annotation/GCA_000001405.15_GRCh38_no_alt_analysis_set_100.bw"
+      normal_db: "/scratch/guillea/projet_WES_BIDIFLY_hg38/normal_db_pureCN/normalDB_agilent_v8_hg38_hg38.rds"
+      mapping_bias : "/scratch/guillea/projet_WES_BIDIFLY_hg38/normal_db_pureCN/mapping_bias_agilent_v8_hg38_hg38.rds"
+      create_normal_db : "0"
 
   sequenza:
       run: "0"
@@ -115,3 +102,6 @@
       cosmic_fusion_count : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/cosmic/cosmic_fusion_counts.tsv"
       all_canonical_txt : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/canonicalInfo/canonical_transcripts.txt"
       region_to_exclude : "/shared/home/aguille/iAnnotateSV/iAnnotateSV/data/human.hg19.delly.excl.tsv"
+
+  multi_qc:
+      config: "/scratch/guillea/multiqc_config.yaml"
